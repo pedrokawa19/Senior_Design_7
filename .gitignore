@@ -1,0 +1,28 @@
+# Python and generated files
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Frontend dependencies and builds
+node_modules/
+dist/
+build/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.vscode/settings.json
+
+# Private project material
+.github/
+data/
+docs/
+meetings/
+notes/
+web-demo/*
+
+# Keep this ignore file available for the repository setup
+!.gitignore
