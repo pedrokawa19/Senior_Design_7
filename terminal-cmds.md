@@ -271,7 +271,12 @@ done # Finish the rename loop.
 ### Zsh settings
 
 ```bash
-code ~/.zshrc # Go to settings
-source ~/.zshrc # Save settings
+# Go to settings
+code ~/.zshrc
 
-for code in {000..255}; do print -P -n -- "%F{$code}$code %f"; [ $((${code} % 16)) -eq 15 ] && echo; done # Show all colors
+# Save settings
+source ~/.zshrc
+
+# Show all colors
+for code in {000..255}; do print -P -n -- "%F{$code}$code %f"; [ $((${code} % 16)) -eq 15 ] && echo; done 
+```
