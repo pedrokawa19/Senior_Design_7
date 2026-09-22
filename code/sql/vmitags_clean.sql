@@ -1,7 +1,7 @@
 create or replace view vmitags_clean as
 select
     -- Item numbers and order references
-    nullif(trim(cast(vmitf_key as unsigned)), '') as vmif_key,
+    cast(nullif(trim(vmitf_key), '') as unsigned) as vmitf_key,
     cast(substring(vmit_item_no, 1, 2) as unsigned) as vmit_item_class,
     nullif(trim(vmit_item_no), '') as vmit_item_no,
     cast(vmit_from_vmi_tag_no as unsigned) as vmit_from_vmi_tag_no,
@@ -12,8 +12,8 @@ select
     cast(vmit_sales_order as unsigned) as vmit_sales_order,
 
     -- Dates
-    nullif(cast(vmit_po_date as date), '1900-01-01') as vmit_po_date,
-    nullif(cast(vmit_tag_po_date as date), '1900-01-01') as vmit_tag_po_date,
+    nullif(cast(vmit_po_date as date), date '1900-01-01') as vmit_po_date,
+    nullif(cast(vmit_tag_po_date as date), date '1900-01-01') as vmit_tag_po_date,
 
     -- Financial and quantity fields
     cast(vmit_qty as decimal(14, 2)) as vmit_qty,
@@ -45,3 +45,4 @@ where vmit_item_no not in (0,1);
 
 -- select max(vmit_po_date) as max_po_date FROM vmitags_clean;
 -- select min(vmit_po_date) as min_po_date FROM vmitags_clean;
+
