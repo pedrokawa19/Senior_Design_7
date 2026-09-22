@@ -1,6 +1,11 @@
-select * 
-from items_clean i
-right join vmitags_clean v
-on i.item_number = v.vmit_item_no 
-order by vmit_po_date desc
+select * from items_clean order by item_number
+limit 1000;
+
+
+select * from vmitags_clean
+order by vmit_item_no
+limit 1000;
+
+select * from po_history_lines_clean
+order by POLN_DATE_GOODS_RECD desc, poln_item_no asc
 limit 1000;

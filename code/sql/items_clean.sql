@@ -2,11 +2,11 @@ create or replace view items_clean as
 select
     trim(item_number) as item_number,
     trim(item_desc_1) as item_desc,
+    trim(substring_index(item_desc_1, ' ', 1)) as item_class_name,
+    cast(item_class as signed) as item_class_cd,
     cast(item_avg_cost as decimal(10,2)) as item_avg_cost,
     cast(item_last_cost as decimal(10,2)) as item_last_cost,
     cast(item_onhand_cost as decimal(10,2)) as item_onhand_cost,
-    cast(item_class as signed) as item_class_cd,
-    trim(substring_index(item_desc_1, ' ', 1)) as item_class_name,
     cast(item_conv_factor as decimal(10,2)) as item_conv_factor,
     trim(item_vendor) as item_vendor,
     cast(item_lsale as date) as item_lsale_date,
@@ -29,6 +29,4 @@ select
     cast(item_piece_wgt as decimal(10,2)) as item_piece_wgt
     from items
     where item_class between 12 and 67
-    and item_number != 0
-    order by item_number asc;
-
+    and item_number != 0;
