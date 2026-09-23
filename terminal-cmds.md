@@ -10,7 +10,7 @@ Both collaborators should run:
 
 ```bash
 git checkout main
-git pull
+git fetch origin && git pull origin main
 git checkout -b <branch-name>
 ```
 
