@@ -39,6 +39,3 @@ FROM items
 WHERE item_class BETWEEN 12 AND 67
     AND item_number != 0
 HAVING item_number_suff NOT IN ('X', 'T', 'DEL', 'DROP');
-
-
-SELECT * from items_clean;
