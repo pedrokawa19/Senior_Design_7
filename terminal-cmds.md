@@ -37,11 +37,15 @@ git checkout -b <branch-name>
 
 ### 3. Open a Pull Request
 
-1. Go to [github.com](https://github.com).
-2. Open a pull request for your branch.
-3. Assign someone to review it, if desired.
-4. When the pull request is ready, click **Ready to merge**.
+1. Go to the [github.com](https://github.com/pedrokawa19/Senior_Design_7/pulls) repo.
+2. Open a pull request for your branch. 
+ - `Compare * pull request`
+ - `Creat pull request`
+3. Assign someone to review it, if desired. 
+4. When the pull request is ready, click `Ready to merge`
 5. Merge the pull request and delete the branch.
+ - `Merge pull request`
+ - `Confirm merge`
 
 ### 4. Update Your Local Main Branch
 
