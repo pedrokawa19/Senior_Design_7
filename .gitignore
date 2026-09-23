@@ -22,6 +22,7 @@ data/
 docs/
 meetings/
 notes/
+research/
 web-demo/*
 
 # Keep this ignore file available for the repository setup
