@@ -2,7 +2,58 @@
 
 A practical command reference for the Vision Metals Senior Design project. These examples assume macOS with `zsh` and a terminal opened in the project folder.
 
-## 1. GitHub Basics
+## Collaboration Workflow
+
+### 1. Create a Branch
+
+Both collaborators should run:
+
+```bash
+git checkout main
+git pull
+git checkout -b <branch-name>
+```
+
+### 2. Make and Commit Changes
+
+1. Edit your files.
+2. Stage the file you changed:
+
+  ```bash
+  git add <file-name>
+  ```
+
+3. Commit your changes:
+
+  ```bash
+  git commit -m "Your commit message"
+  ```
+
+4. Push your branch to GitHub:
+
+  ```bash
+  git push origin <branch-name>
+  ```
+
+### 3. Open a Pull Request
+
+1. Go to [github.com](https://github.com).
+2. Open a pull request for your branch.
+3. Assign someone to review it, if desired.
+4. When the pull request is ready, click **Ready to merge**.
+5. Merge the pull request and delete the branch.
+
+### 4. Update Your Local Main Branch
+
+After the pull request has been merged, run:
+
+```bash
+git checkout main
+git pull
+```
+
+
+## 1. GitHub Dictionary
 ### First-time setup
 
 ```bash
