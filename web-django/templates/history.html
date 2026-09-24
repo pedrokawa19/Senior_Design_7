@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+  <main class="page-content">
+    <section class="card">
+      <div class="card-heading">
+        <div>
+          <p class="eyebrow">Operations</p>
+          <h2>History</h2>
+        </div>
+      </div>
+
+      <nav class="subtab-nav" aria-label="History sections">
+        <a class="subtab {% if history_view == 'purchases' %}active{% endif %}" href="{% url 'history-purchases' %}">Purchase History</a>
+        <a class="subtab {% if history_view == 'sales' %}active{% endif %}" href="{% url 'history-sales' %}">Sales History</a>
+      </nav>
+
+      <div id="history-content">
+        <p class="info">Loading {{ page_title|lower }}...</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const historyUrl = "{{ api_url }}";
+    const historyContent = document.querySelector("#history-content");
+
+    function escapeHtml(value) {
+      return String(value === null || value === undefined ? "" : value).replace(
+        /[&<>"']/g,
+        (character) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[character],
+      );
+    }
+
+    async function loadHistory() {
+      try {
+        const response = await fetch(historyUrl, { credentials: "same-origin" });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (error) {
+          data = null;
+        }
+        if (!response.ok) {
+          throw new Error((data && data.detail) || "The request failed.");
+        }
+
+        if (!data.columns.length || !data.rows.length) {
+          historyContent.innerHTML = '<p class="info">This report returned no rows.</p>';
+          return;
+        }
+
+        const headings = data.columns
+          .map((column) => `<th scope="col">${escapeHtml(column)}</th>`)
+          .join("");
+        const rows = data.rows
+          .map(
+            (row) =>
+              `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`,
+          )
+          .join("");
+
+        historyContent.innerHTML =
+          `<div class="table-scroll"><table class="data-table"><thead><tr>${headings}</tr></thead><tbody>${rows}</tbody></table></div>` +
+          `<p class="row-count">${data.row_count} row${data.row_count === 1 ? "" : "s"} shown.</p>`;
+      } catch (error) {
+        historyContent.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+      }
+    }
+
+    loadHistory();
+  </script>
+{% endblock %}

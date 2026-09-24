@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Purchasing Dashboard{% endblock %}
+{% block content %}
+    <main class="dashboard-content">
+      <section class="card profitability-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">Year To Date</p>
+            <h2>Most Profitable Products</h2>
+          </div>
+        </div>
+        <div id="profitability-content">
+          <p class="info">Loading profitability data...</p>
+        </div>
+      </section>
+      <section class="card index-card">
+        <div class="card-heading">
+          <div>
+            <p class="eyebrow">Market Performance</p>
+            <h2><span id="ticker-title">SLX</span> Index Performance</h2>
+          </div>
+          <strong id="growth" class="growth"></strong>
+        </div>
+        <div class="date-controls">
+          <label
+            >Ticker<select id="ticker">
+              <option>SLX</option>
+              <option>SPY</option>
+            </select></label
+          ><label
+            >From<input id="start-date" type="date" value="2024-01-01" /></label
+          ><label>To<input id="end-date" type="date" /></label>
+        </div>
+        <div id="market-content">
+          <p class="info">Loading market data...</p>
+        </div>
+      </section>
+    </main>
+    <script>
+      const marketContent = document.querySelector("#market-content");
+      const profitabilityContent = document.querySelector("#profitability-content");
+
+      let latestMarketData = null;
+      let chartObserver = null;
+
+      document.querySelector("#end-date").value = new Date()
+        .toISOString()
+        .slice(0, 10);
+
+      function escapeHtml(value) {
+        return String(value === null || value === undefined ? "" : value).replace(
+          /[&<>"']/g,
+          (character) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[character],
+        );
+      }
+
+      async function jsonRequest(path, options = {}) {
+        const response = await fetch(path, {
+          credentials: "same-origin",
+          ...options,
+        });
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (error) {
+          data = null;
+        }
+        if (!response.ok) {
+          throw new Error((data && data.detail) || "The request failed.");
+        }
+        return data || {};
+      }
+
+      async function loadProfitability() {
+        profitabilityContent.innerHTML =
+          '<p class="info">Loading profitability data...</p>';
+        try {
+          const data = await jsonRequest("/api/profitable-products");
+          const rows = data.products
+            .map(
+              (item) =>
+                `<tr><td>${item.rank}</td><td class="product-name">${escapeHtml(item.product)}</td><td>$${item.ytd_profit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td>${item.profit_share.toFixed(2)}%</td></tr>`,
+            )
+            .join("");
+          profitabilityContent.innerHTML = `<div class="table-wrapper"><table class="profit-table"><thead><tr><th>#</th><th>Product</th><th>Profit</th><th>%</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+        } catch (error) {
+          profitabilityContent.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+        }
+      }
+
+      function buildChartSvg(data, width, height) {
+        const values = data.prices;
+        const pad = { top: 18, right: 20, bottom: 34, left: 64 };
+        const innerWidth = Math.max(width - pad.left - pad.right, 10);
+        const innerHeight = Math.max(height - pad.top - pad.bottom, 10);
+        const closes = values.map((item) => item.close);
+        const lowest = Math.min(...closes);
+        const highest = Math.max(...closes);
+        const spread = highest - lowest || Math.max(highest * 0.02, 1);
+        const min = lowest - spread * 0.1;
+        const max = highest + spread * 0.1;
+        const baseline = pad.top + innerHeight;
+        const x = (index) =>
+          pad.left +
+          (values.length < 2
+            ? innerWidth / 2
+            : (index / (values.length - 1)) * innerWidth);
+        const y = (value) => pad.top + ((max - value) / (max - min)) * innerHeight;
+
+        const linePoints = values
+          .map((item, index) => `${x(index).toFixed(1)},${y(item.close).toFixed(1)}`)
+          .join(" ");
+        const areaPoints = `${pad.left},${baseline.toFixed(1)} ${linePoints} ${(pad.left + innerWidth).toFixed(1)},${baseline.toFixed(1)}`;
+
+        const tickCount = 4;
+        let grid = "";
+        for (let step = 0; step <= tickCount; step += 1) {
+          const value = min + (step / tickCount) * (max - min);
+          const position = y(value);
+          grid += `<line class="chart-grid" x1="${pad.left}" x2="${(pad.left + innerWidth).toFixed(1)}" y1="${position.toFixed(1)}" y2="${position.toFixed(1)}"></line>`;
+          grid += `<text class="chart-label" x="${pad.left - 10}" y="${(position + 4).toFixed(1)}" text-anchor="end">$${value.toFixed(2)}</text>`;
+        }
+
+        const labelCount = Math.min(values.length, width < 520 ? 3 : 5);
+        let labels = "";
+        for (let step = 0; step < labelCount; step += 1) {
+          const index = Math.round(
+            (step / Math.max(labelCount - 1, 1)) * (values.length - 1),
+          );
+          const anchor =
+            step === 0 ? "start" : step === labelCount - 1 ? "end" : "middle";
+          labels += `<text class="chart-label" x="${x(index).toFixed(1)}" y="${height - 10}" text-anchor="${anchor}">${values[index].date}</text>`;
+        }
+
+        const lastIndex = values.length - 1;
+        return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(data.ticker)} closing price chart">
+            <defs>
+              <linearGradient id="chart-area-fill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#1f4e79" stop-opacity="0.34"></stop>
+                <stop offset="100%" stop-color="#1f4e79" stop-opacity="0.02"></stop>
+              </linearGradient>
+            </defs>
+            ${grid}
+            <polygon class="chart-area" points="${areaPoints}"></polygon>
+            <polyline class="chart-line" points="${linePoints}"></polyline>
+            <circle class="chart-marker" cx="${x(lastIndex).toFixed(1)}" cy="${y(values[lastIndex].close).toFixed(1)}" r="4"></circle>
+            <line class="chart-axis" x1="${pad.left}" x2="${pad.left}" y1="${pad.top}" y2="${baseline.toFixed(1)}"></line>
+            <line class="chart-axis" x1="${pad.left}" x2="${(pad.left + innerWidth).toFixed(1)}" y1="${baseline.toFixed(1)}" y2="${baseline.toFixed(1)}"></line>
+            ${labels}
+          </svg>`;
+      }
+
+      function renderChart() {
+        const wrapper = document.querySelector("#chart-wrapper");
+        if (!wrapper || !latestMarketData) {
+          return;
+        }
+        const width = Math.round(wrapper.clientWidth);
+        const height = Math.round(wrapper.clientHeight);
+        if (width < 60 || height < 60) {
+          return;
+        }
+        wrapper.innerHTML = buildChartSvg(latestMarketData, width, height);
+      }
+
+      function showMarketData(data) {
+        latestMarketData = data;
+        marketContent.innerHTML = `<div class="chart-summary"><span>$${data.first_close.toFixed(2)} starting close</span><span>$${data.last_close.toFixed(2)} ending close</span></div><div class="chart-wrapper" id="chart-wrapper"></div>`;
+        renderChart();
+
+        if (chartObserver) {
+          chartObserver.disconnect();
+        }
+        chartObserver = new ResizeObserver(() => renderChart());
+        chartObserver.observe(document.querySelector("#chart-wrapper"));
+      }
+
+      async function loadMarket() {
+        const ticker = document.querySelector("#ticker").value;
+        const startDate = document.querySelector("#start-date").value;
+        const endDate = document.querySelector("#end-date").value;
+        document.querySelector("#ticker-title").textContent = ticker;
+        latestMarketData = null;
+        marketContent.innerHTML = `<p class="info">Loading ${escapeHtml(ticker)} data...</p>`;
+        try {
+          const query = new URLSearchParams({
+            start_date: startDate,
+            end_date: endDate,
+            ticker: ticker,
+          });
+          const data = await jsonRequest(`/api/index-performance?${query}`);
+          const growthElement = document.querySelector("#growth");
+          growthElement.textContent = `${data.growth_percentage >= 0 ? "+" : ""}${data.growth_percentage.toFixed(2)}%`;
+          growthElement.className =
+            data.growth_percentage >= 0
+              ? "growth growth-positive"
+              : "growth growth-negative";
+          showMarketData(data);
+        } catch (error) {
+          document.querySelector("#growth").textContent = "";
+          marketContent.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+        }
+      }
+
+      document.querySelector("#ticker").onchange = loadMarket;
+      document.querySelector("#start-date").onchange = loadMarket;
+      document.querySelector("#end-date").onchange = loadMarket;
+
+      async function initialize() {
+        let savedConnection = null;
+        try {
+          const data = await jsonRequest("/api/connection");
+          savedConnection = data.connection;
+        } catch (error) {
+          savedConnection = null;
+        }
+        if (savedConnection) {
+          loadProfitability();
+        } else {
+          profitabilityContent.innerHTML = `<p class="info">Add your database connection on the <a href="{% url 'profile' %}">Profile</a> page to load this table.</p>`;
+        }
+        loadMarket();
+      }
+
+      initialize();
+    </script>
+{% endblock %}

@@ -15,6 +15,7 @@ build/
 .env.*
 !.env.example
 .vscode/settings.json
+db.sqlite3
 
 # Private project material
 .github/
@@ -23,7 +24,6 @@ docs/
 meetings/
 notes/
 research/
-web-demo/*
 
 # Keep this ignore file available for the repository setup
 !.gitignore

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+  <main class="auth-page">
+    <section class="card auth-card">
+      <div class="auth-brand">
+        <p class="eyebrow">Vision Metals</p>
+        <h2>Purchasing Dashboard</h2>
+      </div>
+
+      <div class="auth-toggle" role="tablist" aria-label="Authentication mode">
+        <button type="button" id="show-login" class="{% if active_mode != 'signup' %}is-active{% endif %}">Log in</button>
+        <button type="button" id="show-signup" class="{% if active_mode == 'signup' %}is-active{% endif %}">Sign up</button>
+      </div>
+
+      <form method="post" action="{% url 'login' %}" id="login-form" class="auth-form" {% if active_mode == 'signup' %}hidden{% endif %}>
+        {% csrf_token %}
+        {% for error in login_form.non_field_errors %}
+          <p class="form-error">{{ error }}</p>
+        {% endfor %}
+        <label>
+          Username
+          <input type="text" name="username" autocomplete="username" required />
+        </label>
+        <label>
+          Password
+          <input type="password" name="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="connect-button">Log in</button>
+      </form>
+
+      <form method="post" action="{% url 'signup' %}" id="signup-form" class="auth-form" {% if active_mode != 'signup' %}hidden{% endif %}>
+        {% csrf_token %}
+        {% for error in signup_form.non_field_errors %}
+          <p class="form-error">{{ error }}</p>
+        {% endfor %}
+        <label>
+          Username
+          <input type="text" name="username" autocomplete="username" required />
+          {% for error in signup_form.username.errors %}
+            <span class="form-error">{{ error }}</span>
+          {% endfor %}
+        </label>
+        <label>
+          Password
+          <input type="password" name="password1" autocomplete="new-password" required />
+          {% for error in signup_form.password1.errors %}
+            <span class="form-error">{{ error }}</span>
+          {% endfor %}
+        </label>
+        <label>
+          Confirm password
+          <input type="password" name="password2" autocomplete="new-password" required />
+          {% for error in signup_form.password2.errors %}
+            <span class="form-error">{{ error }}</span>
+          {% endfor %}
+        </label>
+        <p class="helper">Use at least 8 characters that are not all numbers.</p>
+        <button type="submit" class="connect-button">Create account</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    const loginForm = document.querySelector("#login-form");
+    const signupForm = document.querySelector("#signup-form");
+    const showLogin = document.querySelector("#show-login");
+    const showSignup = document.querySelector("#show-signup");
+
+    function setMode(mode) {
+      const isSignup = mode === "signup";
+      signupForm.hidden = !isSignup;
+      loginForm.hidden = isSignup;
+      showSignup.classList.toggle("is-active", isSignup);
+      showLogin.classList.toggle("is-active", !isSignup);
+    }
+
+    showLogin.onclick = () => setMode("login");
+    showSignup.onclick = () => setMode("signup");
+  </script>
+{% endblock %}

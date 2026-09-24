@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+  <main class="page-content">
+    <section class="card">
+      <div class="card-heading">
+        <div>
+          <p class="eyebrow">Your account</p>
+          <h2>Profile</h2>
+        </div>
+      </div>
+
+      <dl class="profile-grid">
+        <dt>Username</dt>
+        <dd>{{ user.username }}</dd>
+        <dt>Account password</dt>
+        <dd>
+          <span class="masked">••••••••••</span>
+          <p class="hint">
+            Your account password is stored as a one-way hash, so it cannot be shown here
+            or recovered by anyone. The database password below can be revealed because the
+            app has to replay it to connect.
+          </p>
+        </dd>
+      </dl>
+
+      <details class="disclosure" {% if open_database %}open{% endif %}>
+        <summary class="disclosure-summary">Database Information</summary>
+        <div class="disclosure-body">
+          {% if storage_error %}
+            <p class="error">{{ storage_error }}</p>
+          {% endif %}
+
+          {% if saved_connection %}
+            <dl class="profile-grid">
+              <dt>Host</dt>
+              <dd>{{ saved_connection.host }}</dd>
+              <dt>Port</dt>
+              <dd>{{ saved_connection.port }}</dd>
+              <dt>Database</dt>
+              <dd>{{ saved_connection.database }}</dd>
+              <dt>Database user</dt>
+              <dd>{{ saved_connection.user }}</dd>
+              <dt>Database password</dt>
+              <dd>
+                <span id="database-password" class="masked">••••••••••</span>
+                <button type="button" class="secondary-button" id="reveal-button">Reveal password</button>
+                <form class="reveal-form" id="reveal-form" hidden>
+                  <label>
+                    Confirm your account password
+                    <input type="password" id="account-password" autocomplete="current-password" />
+                  </label>
+                  <div class="card-actions">
+                    <button type="submit" class="connect-button">Reveal</button>
+                    <button type="button" class="secondary-button" id="cancel-reveal">Cancel</button>
+                  </div>
+                  <p class="error" id="reveal-error"></p>
+                </form>
+              </dd>
+            </dl>
+
+            <div class="card-actions">
+              <button type="button" class="secondary-button" id="toggle-form">Change connection</button>
+              <button type="button" class="danger-button" id="remove-connection">Remove connection</button>
+            </div>
+          {% else %}
+            <p class="info">
+              No database connection is saved for this account. Add one below so the
+              dashboard and history pages can load your data.
+            </p>
+          {% endif %}
+
+          <form class="auth-form" id="connection-form" {% if saved_connection %}hidden{% endif %}>
+            <div class="field-grid">
+              <label>
+                Database user
+                <input name="user" value="{{ saved_connection.user|default:'' }}" required />
+              </label>
+              <label>
+                Password
+                <input
+                  name="password"
+                  type="password"
+                  {% if saved_connection %}placeholder="Keep saved password"{% else %}required{% endif %}
+                />
+              </label>
+              <label>
+                Host / IP
+                <input name="host" value="{{ saved_connection.host|default:'' }}" required />
+              </label>
+              <label>
+                Port
+                <input name="port" value="{{ saved_connection.port|default:'3306' }}" required />
+              </label>
+              <label>
+                Database name
+                <input name="database" value="{{ saved_connection.database|default:'' }}" required />
+              </label>
+            </div>
+            <p class="error" id="connection-error"></p>
+            <p class="info" id="connection-status"></p>
+            <div class="card-actions">
+              <button type="submit" class="connect-button" id="save-connection">SAVE AND VERIFY</button>
+            </div>
+          </form>
+        </div>
+      </details>
+
+      <div class="profile-footer">
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="danger-button">Log out</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const csrfToken = "{{ csrf_token }}";
+    const connectionForm = document.querySelector("#connection-form");
+    const connectionError = document.querySelector("#connection-error");
+    const connectionStatus = document.querySelector("#connection-status");
+
+    async function jsonRequest(path, options = {}) {
+      const response = await fetch(path, { credentials: "same-origin", ...options });
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
+      if (!response.ok) {
+        throw new Error((data && data.detail) || "The request failed.");
+      }
+      return data || {};
+    }
+
+    connectionForm.onsubmit = async (event) => {
+      event.preventDefault();
+      connectionError.textContent = "";
+      connectionStatus.textContent = "";
+
+      const formData = new FormData(connectionForm);
+      const payload = {};
+      ["user", "password", "host", "port", "database"].forEach((field) => {
+        payload[field] = formData.get(field);
+      });
+      if (!payload.password) {
+        delete payload.password;
+      }
+
+      const button = document.querySelector("#save-connection");
+      button.disabled = true;
+      button.textContent = "VERIFYING...";
+      try {
+        await jsonRequest("/api/connection", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+          body: JSON.stringify(payload),
+        });
+        await jsonRequest("/api/connection/verify", {
+          method: "POST",
+          headers: { "X-CSRFToken": csrfToken },
+        });
+        connectionStatus.textContent = "Connection saved and verified.";
+        window.location.reload();
+      } catch (error) {
+        connectionError.textContent = error.message;
+        button.disabled = false;
+        button.textContent = "SAVE AND VERIFY";
+      }
+    };
+
+    const toggleFormButton = document.querySelector("#toggle-form");
+    if (toggleFormButton) {
+      toggleFormButton.onclick = () => {
+        connectionForm.hidden = !connectionForm.hidden;
+      };
+    }
+
+    const removeButton = document.querySelector("#remove-connection");
+    if (removeButton) {
+      removeButton.onclick = async () => {
+        removeButton.disabled = true;
+        try {
+          await jsonRequest("/api/connection", {
+            method: "DELETE",
+            headers: { "X-CSRFToken": csrfToken },
+          });
+          window.location.reload();
+        } catch (error) {
+          connectionError.textContent = error.message;
+          removeButton.disabled = false;
+        }
+      };
+    }
+
+    const revealButton = document.querySelector("#reveal-button");
+    if (revealButton) {
+      const revealForm = document.querySelector("#reveal-form");
+      const revealError = document.querySelector("#reveal-error");
+      const accountPassword = document.querySelector("#account-password");
+      const passwordField = document.querySelector("#database-password");
+
+      revealButton.onclick = () => {
+        if (passwordField.dataset.revealed === "true") {
+          passwordField.textContent = "••••••••••";
+          passwordField.className = "masked";
+          delete passwordField.dataset.revealed;
+          revealButton.textContent = "Reveal password";
+          return;
+        }
+        revealForm.hidden = false;
+        revealButton.hidden = true;
+        accountPassword.focus();
+      };
+
+      document.querySelector("#cancel-reveal").onclick = () => {
+        revealForm.hidden = true;
+        revealButton.hidden = false;
+        revealError.textContent = "";
+        accountPassword.value = "";
+      };
+
+      revealForm.onsubmit = async (event) => {
+        event.preventDefault();
+        revealError.textContent = "";
+        try {
+          const data = await jsonRequest("/api/connection/password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({ account_password: accountPassword.value }),
+          });
+          passwordField.textContent = data.password;
+          passwordField.className = "revealed";
+          passwordField.dataset.revealed = "true";
+          revealButton.textContent = "Hide password";
+          revealButton.hidden = false;
+          revealForm.hidden = true;
+        } catch (error) {
+          revealError.textContent = error.message;
+        } finally {
+          accountPassword.value = "";
+        }
+      };
+    }
+  </script>
+{% endblock %}

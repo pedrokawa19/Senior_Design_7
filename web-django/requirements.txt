@@ -1,0 +1,11 @@
+# Pinned to compatible releases so a reinstall on the server cannot pull a
+# breaking major version months from now.
+Django~=5.2.6
+pandas~=2.3.0
+yfinance~=0.2.66
+mysql-connector-python~=9.4.0
+cryptography~=46.0.0
+
+# Production serving
+gunicorn~=23.0.0
+whitenoise~=6.11.0
