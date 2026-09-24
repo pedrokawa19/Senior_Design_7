@@ -2,8 +2,6 @@ create or replace view po_history_hdrs_clean AS
 SELECT 
 -- PO Identifiers
     TRIM(POHDF_KEY) as POHD_KEY,
-    CAST(POHD_PO_NO AS UNSIGNED) AS POHD_PO_NO,
-    CAST(POHD_SUB_PO_NO AS UNSIGNED) AS POHD_SUB_PO_NO,
 
 -- Numeric Information
     CAST(POHD_GROSS_AMT AS DECIMAL(18,2)) AS POHD_GROSS_AMT,
@@ -32,4 +30,7 @@ SELECT
     CAST(POHD_CHK_NO AS UNSIGNED) AS POHD_CHK_NO,
     CAST(POHD_BUYER_CD AS UNSIGNED) AS POHD_BUYER_CD
 from po_history_hdrs
-where pohd_po_no <> 1;
+where pohd_po_no <> 1
+and pohd_vend_no not in ("00000000");
+
+select * from po_history_hdrs_clean;

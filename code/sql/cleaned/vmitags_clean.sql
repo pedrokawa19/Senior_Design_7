@@ -6,7 +6,7 @@ select
     nullif(trim(vmit_item_no), '') as vmit_item_no,
     cast(vmit_from_vmi_tag_no as unsigned) as vmit_from_vmi_tag_no,
     cast(vmit_org_vmi_tag_no as unsigned) as vmit_org_vmi_tag_no,
-    cast(vmit_poln_po_num as unsigned) as vmit_poln_po_num,
+    cast(vmit_poln_po_num as unsigned) as vmit_poln_po_no,
     cast(vmit_poln_sub_po_no as unsigned) as vmit_poln_sub_po_no,
     cast(vmit_poln_seq_no as unsigned) as vmit_poln_seq_no,
     cast(vmit_sales_order as unsigned) as vmit_sales_order,
@@ -22,7 +22,7 @@ select
     cast(vmit_qty_status as unsigned) as vmit_qty_status,
 
     -- Item information
-    nullif(trim(vmit_tag_desc), '') as vmi_tag_desc,
+    nullif(trim(vmit_tag_desc), '') as vmit_tag_desc,
     nullif(trim(vmit_order_cust), '') as vmit_order_cust,
     nullif(trim(vmit_bin_loc), '') as vmit_bin_loc,
     nullif(trim(vmit_processor_tag_nbr), '') as vmit_processor_tag_nbr,
