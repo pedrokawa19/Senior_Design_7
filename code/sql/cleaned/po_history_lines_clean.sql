@@ -6,14 +6,15 @@ SELECT
     CAST(POLN_PO_NO AS UNSIGNED) AS POLN_PO_NO,
     CAST(POLN_SUB_PO_NO AS UNSIGNED) AS POLN_SUB_PO_NO,
     CAST(POLN_SEQ_NO AS UNSIGNED) AS POLN_SEQ_NO,
+    CAST(POLN_PARENT_SEQ_NO AS UNSIGNED) AS POLN_PARENT_SEQ_NO,
     TRIM(POLN_VENDOR_NAME) AS POLN_VENDOR_NAME,
 
 -- Item Info
+    SUBSTRING(POLN_ITEM_NO, 1, 2) AS POLN_ITEM_CLASS_NO,
     TRIM(POLN_ITEM_NO) AS POLN_ITEM_NO,
     TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) AS POLN_ITEM_DESC_PREF,
     TRIM(POLN_ITEM_DESC) AS POLN_ITEM_DESC,
     CAST(POLN_VMI_TAG_NO AS UNSIGNED) AS POLN_VMI_TAG_NO,
-    CAST(POLN_PARENT_SEQ_NO AS UNSIGNED) AS POLN_PARENT_SEQ_NO,
 
 -- Quantity Info
     CAST(POLN_ORDER_QTY AS UNSIGNED) AS POLN_ORDER_QTY,
@@ -41,4 +42,15 @@ from po_history_lines
 where POLN_ITEM_NO NOT IN ('1', 'X', 'C', 'F', 'TAG', 'SPEC', 'COIL PROCESS',
                            'WIRE16', 'WIRE14', 'WIRE14HRPO')
 and substring(poln_item_no, 1, 2) between 12 and 67
-and TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) not in ('**', 'MISCELLANEOUS', 'BOND', 'PTD', 'ALMZ');
+and TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) not in ('**', 'COATED', 'MISCELLANEOUS', 
+                                                          'BOND', 'PTD', 'ALMZ'
+                                                          'CR');
+
+select distinct poln_item_desc_pref
+from po_history_lines_clean;
+
+select * from po_history_lines_clean
+where POLN_ITEM_DESC_PREF in ('HRPO', 'HPRO', 'HRP', 'HRPD', 'RHPO');
+
+
+select distinct POLN_ITEM_DESC_PREF from po_history_lines_clean where POLN_ITEM_CLASS_NO = 66;
