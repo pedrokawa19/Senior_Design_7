@@ -62,3 +62,4 @@ AND ORDL_ITEM_CLASS_NAME NOT IN ('ALMZ', 'ADJUSTMENT', 'ALZM',
 AND ITEM_CLASS_NO BETWEEN 12 AND 67;
 
 
+select * from order_history_lines_clean join vmitags_clean where ORDL_VMIT_TAG_NO = vmitf_key;
