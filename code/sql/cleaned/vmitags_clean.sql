@@ -40,7 +40,7 @@ from vmi_tags
 where vmit_item_no not in (0,1);
 
 
--- select * from vmitags_clean order by vmit_po_date asc limit 10;
+select * from vmitags_clean order by vmit_po_date asc limit 10;
 
 
 -- select max(vmit_po_date) as max_po_date FROM vmitags_clean;
