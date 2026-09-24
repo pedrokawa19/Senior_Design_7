@@ -6,12 +6,10 @@ A practical command reference for the Vision Metals Senior Design project. These
 
 ### 1. Create a Branch
 
-Both collaborators should run:
-
 ```bash
-git checkout main
-git fetch origin && git pull origin main
-git checkout -b <branch-name>
+git checkout main # go into main
+git fetch origin && git pull origin main # sync comp.
+git checkout -b <branch-name> # create and switch into branch
 ```
 
 ### 2. Make and Commit Changes
@@ -46,6 +44,15 @@ git checkout -b <branch-name>
 5. Merge the pull request and delete the branch.
  - `Merge pull request`
  - `Confirm merge`
+
+Alternatively, in your terminal, you can run:
+
+```bash
+git checkout main
+git merge <branch>
+git push -u origin main
+```
+However, Github does the checking for you and provides a nicer UI to handle these things.
 
 ### 4. Update Your Local Main Branch
 
