@@ -1,0 +1,555 @@
+{% load static %}<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Purchasing Dashboard{% endblock %}</title>
+    <style>
+      :root {
+        font-family: Arial, Helvetica, sans-serif;
+        color: #102a43;
+        background: #f5f0e6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: #f5f0e6;
+      }
+      .dashboard-header {
+        padding: 28px clamp(24px, 7vw, 112px) 0;
+        color: #fff;
+        background: #102a43;
+        border-bottom: 5px solid #dfe7ed;
+      }
+      .header-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: #1f4e79;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .dashboard-header .eyebrow {
+        color: #dfe7ed;
+      }
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+      h1 {
+        margin-bottom: 0;
+        font-size: clamp(1.75rem, 3vw, 2.75rem);
+        font-weight: 500;
+      }
+      h2 {
+        margin-bottom: 0;
+        color: #102a43;
+        font-size: clamp(1.15rem, 2vw, 1.5rem);
+        font-weight: 500;
+      }
+      .tab-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 22px;
+      }
+      .tab {
+        padding: 10px 18px;
+        border: 1px solid transparent;
+        border-bottom: 0;
+        border-radius: 5px 5px 0 0;
+        color: #dfe7ed;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+      .tab:hover {
+        background: #1f4e79;
+      }
+      .tab.active {
+        color: #102a43;
+        background: #f5f0e6;
+        border-color: #dfd5c4;
+      }
+      .tab-profile {
+        margin-left: auto;
+      }
+      .page-content {
+        width: min(100% - 48px, 1120px);
+        margin: 0 auto;
+        padding: 48px 0;
+      }
+      .dashboard-content {
+        display: grid;
+        grid-template-columns: 1.2fr 1.8fr;
+        gap: 24px;
+        width: min(100% - 48px, 1120px);
+        margin: 0 auto;
+        padding: 48px 0;
+        align-items: start;
+      }
+      .card {
+        padding: 24px;
+        background: #fffdf8;
+        border: 1px solid #dfd5c4;
+        border-radius: 6px;
+        box-shadow: 0 12px 30px rgba(46, 35, 20, 0.08);
+      }
+      .profitability-card {
+        grid-column: 1;
+        min-width: 0;
+      }
+      .card-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .connect-button {
+        flex: 1 1 200px;
+        max-width: 100%;
+        min-height: 38px;
+        padding: 10px 14px;
+        border: 1px solid #102a43;
+        border-radius: 4px;
+        color: #fff;
+        background: #102a43;
+        font:
+          700 0.72rem Arial,
+          sans-serif;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+      .connect-button:disabled {
+        cursor: wait;
+        opacity: 0.7;
+      }
+      .secondary-button {
+        flex: 0 1 auto;
+        min-height: 38px;
+        padding: 10px 14px;
+        border: 1px solid #c9d3dc;
+        border-radius: 4px;
+        color: #536273;
+        background: #fff;
+        font:
+          700 0.72rem Arial,
+          sans-serif;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+      .table-wrapper {
+        width: 100%;
+        overflow: hidden;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      /* Only the profitability table has a known, fixed set of columns. */
+      .profit-table {
+        table-layout: fixed;
+      }
+      th,
+      td {
+        padding: 12px 6px;
+        border-bottom: 1px solid #e8dfd2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .profit-table th:nth-child(1),
+      .profit-table td:nth-child(1) {
+        width: 10%;
+      }
+      .profit-table th:nth-child(2),
+      .profit-table td:nth-child(2) {
+        width: 30%;
+      }
+      .profit-table th:nth-child(3),
+      .profit-table td:nth-child(3) {
+        width: 40%;
+      }
+      .profit-table th:nth-child(4),
+      .profit-table td:nth-child(4) {
+        width: 20%;
+      }
+      th {
+        color: #102a43;
+        background: #f2eadc;
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      td {
+        color: #536273;
+        font-size: 0.82rem;
+      }
+      td.product-name {
+        color: #102a43;
+        font-weight: 700;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .index-card {
+        grid-column: 2;
+        min-width: 0;
+      }
+      .growth {
+        color: #102a43;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .growth-positive {
+        color: #28745a;
+      }
+      .growth-negative {
+        color: #a63d40;
+      }
+      .date-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        color: #536273;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      input,
+      select {
+        min-height: 34px;
+        padding: 6px 8px;
+        border: 1px solid #c9d3dc;
+        border-radius: 4px;
+        color: #1d2939;
+        background: #fff;
+        font: inherit;
+      }
+      .chart-summary {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+        color: #536273;
+        font-size: 0.88rem;
+      }
+      .chart-wrapper {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        min-height: 260px;
+        background: #fff;
+        border: 1px solid #dfd5c4;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .chart-wrapper svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .chart-grid {
+        stroke: #e8dfd2;
+        stroke-dasharray: 3 3;
+      }
+      .chart-line {
+        fill: none;
+        stroke: #1f4e79;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .chart-area {
+        fill: url(#chart-area-fill);
+      }
+      .chart-axis {
+        stroke: #b8c6d1;
+        stroke-width: 1;
+      }
+      .chart-label {
+        fill: #536273;
+        font-size: 12px;
+      }
+      .chart-marker {
+        fill: #1f4e79;
+        stroke: #fff;
+        stroke-width: 2;
+      }
+      .info {
+        color: #536273;
+      }
+      .error {
+        color: #a63d40;
+      }
+      .placeholder-body {
+        margin: 0;
+        padding: 28px 0;
+        color: #536273;
+        font-size: 1rem;
+      }
+      .danger-button {
+        min-height: 38px;
+        padding: 10px 14px;
+        border: 1px solid #a63d40;
+        border-radius: 4px;
+        color: #a63d40;
+        background: #fff;
+        font:
+          700 0.72rem Arial,
+          sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .profile-grid {
+        display: grid;
+        grid-template-columns: minmax(140px, 200px) 1fr;
+        gap: 12px 20px;
+        margin: 0 0 20px;
+      }
+      .profile-grid dt {
+        color: #536273;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .profile-grid dd {
+        margin: 0;
+        color: #102a43;
+        overflow-wrap: anywhere;
+      }
+      .masked {
+        color: #536273;
+        font-size: 1rem;
+        letter-spacing: 0.18em;
+      }
+      .revealed {
+        padding: 2px 6px;
+        color: #102a43;
+        background: #f2eadc;
+        border-radius: 3px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+      }
+      .hint {
+        margin: 6px 0 0;
+        color: #536273;
+        font-size: 0.76rem;
+      }
+      .disclosure {
+        margin-bottom: 20px;
+        border: 1px solid #dfd5c4;
+        border-radius: 5px;
+        background: #fff;
+      }
+      .disclosure-summary {
+        padding: 13px 16px;
+        color: #102a43;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .disclosure-body {
+        padding: 4px 16px 18px;
+        border-top: 1px solid #e8dfd2;
+      }
+      .reveal-form {
+        display: grid;
+        gap: 10px;
+        max-width: 340px;
+        margin-top: 12px;
+      }
+      .profile-footer {
+        padding-top: 20px;
+        border-top: 1px solid #e8dfd2;
+      }
+      .profile-footer form {
+        margin: 0;
+      }
+      .subtab-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 22px;
+        border-bottom: 1px solid #e8dfd2;
+      }
+      .subtab {
+        padding: 9px 16px;
+        border-bottom: 3px solid transparent;
+        color: #536273;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+      .subtab.active {
+        color: #102a43;
+        border-bottom-color: #1f4e79;
+      }
+      .table-scroll {
+        width: 100%;
+        overflow-x: auto;
+      }
+      .data-table th,
+      .data-table td {
+        padding: 10px 14px;
+        white-space: nowrap;
+      }
+      .row-count {
+        margin: 14px 0 0;
+        color: #536273;
+        font-size: 0.78rem;
+      }
+      .auth-page {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 32px 24px;
+      }
+      .auth-card {
+        width: min(100%, 420px);
+      }
+      .auth-brand {
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .auth-brand .eyebrow {
+        color: #1f4e79;
+      }
+      .auth-toggle {
+        display: flex;
+        gap: 6px;
+        margin: 18px 0;
+        padding: 4px;
+        background: #f2eadc;
+        border-radius: 5px;
+      }
+      .auth-toggle button {
+        flex: 1;
+        padding: 9px 12px;
+        border: 0;
+        border-radius: 4px;
+        color: #536273;
+        background: transparent;
+        font:
+          700 0.75rem Arial,
+          sans-serif;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      .auth-toggle button.is-active {
+        color: #fff;
+        background: #102a43;
+      }
+      .auth-form {
+        display: grid;
+        gap: 14px;
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+      }
+      /* A class selector would otherwise outrank the browser default for [hidden]. */
+      .auth-form[hidden] {
+        display: none;
+      }
+      .auth-form .helper {
+        margin: 0;
+        color: #536273;
+        font-size: 0.72rem;
+        font-weight: 400;
+        text-transform: none;
+      }
+      .form-error {
+        margin: 0;
+        color: #a63d40;
+        font-size: 0.78rem;
+      }
+      @media (max-width: 700px) {
+        .dashboard-content {
+          grid-template-columns: 1fr;
+          width: min(100% - 24px, 1120px);
+          padding: 24px 0;
+        }
+        .page-content {
+          width: min(100% - 24px, 1120px);
+          padding: 24px 0;
+        }
+        .profitability-card,
+        .index-card {
+          grid-column: 1;
+        }
+        .date-controls {
+          align-items: stretch;
+          flex-direction: column;
+        }
+        .card-actions {
+          flex-direction: column;
+        }
+        .connect-button,
+        .secondary-button {
+          flex: 1 1 auto;
+          width: 100%;
+        }
+        .chart-wrapper {
+          aspect-ratio: 4 / 3;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    {% if user.is_authenticated %}
+      <header class="dashboard-header">
+        <div class="header-top">
+          <div>
+            <p class="eyebrow">Vision Metals</p>
+            <h1>Purchasing Dashboard</h1>
+          </div>
+        </div>
+        <nav class="tab-nav" aria-label="Main navigation">
+          <a class="tab {% if active_tab == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
+          <a class="tab {% if active_tab == 'auction' %}active{% endif %}" href="{% url 'auction' %}">Auction</a>
+          <a class="tab {% if active_tab == 'history' %}active{% endif %}" href="{% url 'history' %}">History</a>
+          <a class="tab {% if active_tab == 'inventory' %}active{% endif %}" href="{% url 'inventory' %}">Inventory</a>
+          <a class="tab {% if active_tab == 'model' %}active{% endif %}" href="{% url 'model' %}">Model</a>
+          <a class="tab tab-profile {% if active_tab == 'profile' %}active{% endif %}" href="{% url 'profile' %}">Profile</a>
+        </nav>
+      </header>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </body>
+</html>
