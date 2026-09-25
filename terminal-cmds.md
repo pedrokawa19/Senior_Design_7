@@ -65,7 +65,7 @@ git pull
 
 Long Command
 ```bash
-git add . && git commit -m "message" && git push origin branch && git checkout main && git merge branch && git push -u origin main && git checkout main && git pull
+git add . && git commit -m "message" && git push origin branch && git checkout main && git merge branch && git push -u origin main && git checkout main && git pull && git branch -D branch
 ```
 
 ## 1. GitHub Dictionary
