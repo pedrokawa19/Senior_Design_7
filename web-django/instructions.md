@@ -11,7 +11,7 @@ user's saved MySQL settings are private to that user.
 Create and activate a virtual environment, then install the requirements:
 
 ```bash
-cd "web-demo/django"
+cd "web-django"
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
