@@ -26,34 +26,6 @@ MAX_ROWS = 200
 class HistoryQueryNotConfigured(Exception):
     """Raised when a report's SQL has not been written yet."""
 
-
-# ---------------------------------------------------------------------------
-# PURCHASE HISTORY
-#
-# >>> PUT YOUR SQL FOR THE MOST RECENT PURCHASE ORDERS BETWEEN THE QUOTES <<<
-#
-# Likely source tables (see code/sql/): po_history_hdrs_clean joined to
-# po_history_lines_clean.
-#
-# Tips:
-#   - Sort newest first, for example: order by order_date desc
-#   - Include a LIMIT so the page stays fast, for example: limit 100
-#   - Alias columns to the heading you want, for example:
-#       select po_number as "PO Number", vendor_name as "Vendor"
-#
-# Example of the shape expected (replace this entirely with your own SQL):
-#   select
-#       h.po_number      as "PO Number",
-#       h.vendor_name    as "Vendor",
-#       h.order_date     as "Order Date",
-#       l.item_description as "Item",
-#       l.weight_lbs     as "Weight (lbs)",
-#       l.extended_cost  as "Cost"
-#   from po_history_hdrs_clean h
-#   join po_history_lines_clean l on l.po_number = h.po_number
-#   order by h.order_date desc
-#   limit 100;
-# ---------------------------------------------------------------------------
 PURCHASE_HISTORY_QUERY = """
 select
 polnf_key,
@@ -68,22 +40,27 @@ POLN_RCVD_PRICE,
 poln_deliv_date,
 poln_date_goods_recd
 from po_history_lines_clean
-order by poln_deliv_date desc;
+order by poln_deliv_date desc
+limit 250;
 """
 
-
-# ---------------------------------------------------------------------------
-# SALES HISTORY
-#
-# >>> PUT YOUR SQL FOR THE MOST RECENT SALES ORDERS BETWEEN THE QUOTES <<<
-#
-# Likely source tables (see code/sql/): order_history_hdrs_clean joined to
-# order_history_lines_clean.
-#
-# The same tips apply: sort newest first, include a LIMIT, and alias columns
-# to the headings you want shown.
-# ---------------------------------------------------------------------------
 SALES_HISTORY_QUERY = """
+select 
+ordlf_key,
+ordlf_ordh_key,
+ordl_item_no,
+ordl_item_desc,
+ordl_item_class,
+date_format(oh.ordh_ord_date, '%Y-%m-%d') as ordh_ord_date,
+ordl_order_qty,
+ordl_item_rev,
+ordl_item_cost,
+ordl_total_profit
+from order_history_lines_clean ol
+left join order_history_hdrs_clean oh
+on ol.ordlf_ordh_key = oh.ordhf_key
+order by ordh_ord_date desc
+limit 2000;
 """
 
 
