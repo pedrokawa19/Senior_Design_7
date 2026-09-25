@@ -63,6 +63,10 @@ git checkout main
 git pull
 ```
 
+Long Command
+```bash
+git add . && git commit -m "message" && git push origin branch && git checkout main && git merge branch && git push -u origin main && git checkout main && git pull
+```
 
 ## 1. GitHub Dictionary
 ### First-time setup
