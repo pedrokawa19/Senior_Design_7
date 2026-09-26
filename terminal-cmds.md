@@ -68,6 +68,13 @@ Long Command
 git add . && git commit -m "message" && git push origin branch && git checkout main && git merge branch && git push -u origin main && git checkout main && git pull && git branch -D branch
 ```
 
+### Delete Branches
+Run this if all the branches are deleted on Github too.
+Github stores the branches in the repo and locally differently to allow one to recover lost information.
+```bash
+git fetch origin --prune # Be cautious of using this
+```
+
 ## 1. GitHub Dictionary
 ### First-time setup
 
