@@ -31,6 +31,7 @@ SELECT
     CAST(POHD_BUYER_CD AS UNSIGNED) AS POHD_BUYER_CD
 from po_history_hdrs
 where pohd_po_no <> 1
-and pohd_vend_no not in ("00000000");
+and pohd_vend_no not in ("00000000")
+and POHD_VEND_NAME not in ("* TEST PURCHASE ORDER");
 
 select * from po_history_hdrs_clean;
