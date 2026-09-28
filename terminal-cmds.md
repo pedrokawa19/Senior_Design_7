@@ -352,4 +352,13 @@ source ~/.zshrc
 
 # Show all colors
 for code in {000..255}; do print -P -n -- "%F{$code}$code %f"; [ $((${code} % 16)) -eq 15 ] && echo; done 
+
+# Set colors
+PROMPT='%F{green}%1~ %# %F{blue}'
+
+preexec() {
+  print -rn -- $'\e[0m'
+}
+
+
 ```
