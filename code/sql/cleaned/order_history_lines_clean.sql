@@ -17,7 +17,7 @@ SELECT
     SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) AS ORDL_ITEM_CLASS_NAME,
 
 -- VMI AND SKID TAG
-    CAST(ORDL_VMIT_TAG_NO AS UNSIGNED) AS ORDL_VMIT_TAG_NO,
+    ORDL_VMIT_TAG_NO,
     CAST(ORDL_SKID_TAG_NO AS UNSIGNED) AS ORDL_SKID_TAG_NO,
 
     -- QUANTITY, REVENUE, COST, AND PROFIT
@@ -48,17 +48,17 @@ AND ORDL_ITEM_DESC NOT IN (
     '******* CREDIT MEMO ********',
     '____________________________'
 )
-HAVING ORDL_ITEM_NO_SUFF NOT IN (
+AND STRIP_DIGITS(TRIM(ORDL_ITEM_NO)) NOT IN (
     'DROP', 'TOLL', 'TUBE', 'SCRAP', 'REJECT', 'PIPE', 'PLATE',
     'M', 'FP', 'FLPLATE', 'DECK', 'CHAN', 'BEAM', 'BAR', 'ANG'
 )
-AND ORDL_ITEM_CLASS_NAME NOT IN ('ALMZ', 'ADJUSTMENT', 'ALZM', 
+AND SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) NOT IN ('ALMZ', 'ADJUSTMENT', 'ALZM', 
                                  'MISCELLANEOUS', 'PTD', 'BOND', 'PL', 
                                  'FLPL', 'AZ50', 'EG', 'GA/GI', 
                                  'SCRAP', 'GF', 'CLEAT', 'POTP', 
                                  'POTLDRY', 'SEC', '4', '5',''
 )
-AND ITEM_CLASS_NO BETWEEN 12 AND 67;
+AND CAST(LEFT(TRIM(ORDL_ITEM_NO), 2) AS UNSIGNED) BETWEEN 12 AND 67;
 
 
 select * from order_history_lines_clean join vmitags_clean where ORDL_VMIT_TAG_NO = vmitf_key;

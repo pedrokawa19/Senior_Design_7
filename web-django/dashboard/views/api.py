@@ -19,9 +19,10 @@ from ..credentials import (
     CredentialStorageUnavailable,
     public_connection,
 )
-from ..forms import ConnectionForm
+from ..forms import ConnectionForm, HistoryFilterForm
+from ..models import SavedConnection
 from ..services import connections, database, history, market, profitability
-from ..services.history import HistoryQueryNotConfigured
+from ..services.history import HistoryQueryNotConfigured, InvalidHistorySort
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +187,9 @@ def index_performance(request):
 
 
 def _history_response(request, loader, label):
+    form = HistoryFilterForm(request.GET)
+    if not form.is_valid():
+        return JsonResponse({"detail": _first_form_error(form)}, status=400)
     try:
         saved_settings = connections.require_connection(request.user)
     except ConnectionNotConfigured as error:
@@ -194,7 +198,18 @@ def _history_response(request, loader, label):
         return JsonResponse({"detail": str(error)}, status=503)
 
     try:
-        return JsonResponse(loader(saved_settings))
+        version = SavedConnection.objects.get(user=request.user).updated_at.isoformat()
+        data = form.cleaned_data
+        response = JsonResponse(loader(
+            saved_settings, user_id=request.user.pk, connection_version=version,
+            filters={name: data[name] for name in ("start_date", "end_date", "item", "party")},
+            page=data["page"] or 1, refresh=data["refresh"] == "1",
+            sort_column=data["sort_column"], sort_direction=data["sort_direction"],
+        ))
+        response["Cache-Control"] = "no-store"
+        return response
+    except InvalidHistorySort as error:
+        return JsonResponse({"detail": str(error)}, status=400)
     except HistoryQueryNotConfigured as error:
         return JsonResponse({"detail": str(error)}, status=501)
     except Exception:

@@ -1,7 +1,7 @@
 create or replace view vmitags_clean as
 select
     -- Item numbers and order references
-    cast(nullif(trim(vmitf_key), '') as unsigned) as vmitf_key,
+    vmitf_key,
     cast(substring(vmit_item_no, 1, 2) as unsigned) as vmit_item_class,
     nullif(trim(vmit_item_no), '') as vmit_item_no,
     cast(vmit_from_vmi_tag_no as unsigned) as vmit_from_vmi_tag_no,
@@ -45,4 +45,3 @@ select * from vmitags_clean order by vmit_po_date asc limit 10;
 
 -- select max(vmit_po_date) as max_po_date FROM vmitags_clean;
 -- select min(vmit_po_date) as min_po_date FROM vmitags_clean;
-

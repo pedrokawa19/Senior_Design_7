@@ -1,12 +1,69 @@
 {% extends "base.html" %}
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
+  <style>
+    .history-sort {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      border: 0;
+      color: inherit;
+      background: transparent;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+    }
+    .history-sort:hover { text-decoration: underline; }
+    .history-sort:focus-visible { outline: 2px solid #1f4e79; outline-offset: 4px; }
+
+    .history-pagination {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+      color: #536273;
+      font-size: 0.78rem;
+    }
+    .history-pagination .secondary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      font-size: 1.15rem;
+      letter-spacing: 0;
+    }
+    .history-pagination button:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .history-pagination input {
+      width: 52px;
+      height: 34px;
+      padding: 0 4px;
+      text-align: center;
+      font-size: inherit;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+    .history-pagination input::-webkit-inner-spin-button,
+    .history-pagination input::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  </style>
   <main class="page-content">
     <section class="card">
       <div class="card-heading">
         <div>
           <p class="eyebrow">Operations</p>
           <h2>History</h2>
+          <p class="eyebrow" id="last-refreshed" style="margin-top: 12px" aria-live="polite">Last Refreshed · Not yet loaded</p>
         </div>
       </div>
 
@@ -15,9 +72,27 @@
         <a class="subtab {% if history_view == 'sales' %}active{% endif %}" href="{% url 'history-sales' %}">Sales History</a>
       </nav>
 
-      <div id="history-content">
+      <form id="history-filters" class="date-controls">
+        <label>From ({% if history_view == 'purchases' %}delivery{% else %}order{% endif %} date)<input type="date" name="start_date" /></label>
+        <label>To<input type="date" name="end_date" /></label>
+        <label>Item number or description<input name="item" maxlength="128" type="search" /></label>
+        <label>{% if history_view == 'purchases' %}Vendor{% else %}Customer{% endif %}<input name="party" maxlength="128" type="search" /></label>
+        <button class="secondary-button" type="submit">Apply filters</button>
+        <button class="secondary-button" type="reset">Clear filters</button>
+        <button class="secondary-button" type="button" id="refresh-history">Refresh</button>
+      </form>
+      <p class="error" id="history-error" role="alert"></p>
+      <div id="history-content" aria-live="polite">
         <p class="info">Loading {{ page_title|lower }}...</p>
       </div>
+      <nav class="history-pagination" aria-label="History pages">
+        <button class="secondary-button" id="first-page" type="button" aria-label="First page" title="First page" disabled><span aria-hidden="true">«</span></button>
+        <button class="secondary-button" id="previous-page" type="button" aria-label="Previous page" title="Previous page" disabled><span aria-hidden="true">‹</span></button>
+        <input id="page-number" type="number" min="1" max="1" step="1" value="1" aria-label="Page number" aria-describedby="page-status" disabled />
+        <span id="page-status" aria-live="polite">of 1</span>
+        <button class="secondary-button" id="next-page" type="button" aria-label="Next page" title="Next page" disabled><span aria-hidden="true">›</span></button>
+        <button class="secondary-button" id="last-page" type="button" aria-label="Last page" title="Last page" disabled><span aria-hidden="true">»</span></button>
+      </nav>
     </section>
   </main>
 
@@ -39,42 +114,141 @@
       );
     }
 
-    async function loadHistory() {
+    const filterForm = document.querySelector("#history-filters");
+    const firstButton = document.querySelector("#first-page");
+    const lastButton = document.querySelector("#last-page");
+    const pageInput = document.querySelector("#page-number");
+    const previousButton = document.querySelector("#previous-page");
+    const nextButton = document.querySelector("#next-page");
+    const refreshButton = document.querySelector("#refresh-history");
+    const errorContent = document.querySelector("#history-error");
+    const refreshedContent = document.querySelector("#last-refreshed");
+    let appliedFilters = new URLSearchParams();
+    let sortColumn = null;
+    let sortDirection = "";
+    let currentPage = 1;
+    let pageCount = 1;
+    let refreshTimer = null;
+    let controller = null;
+    let requestNumber = 0;
+
+    async function loadHistory(page = 1, refresh = false) {
+      const thisRequest = ++requestNumber;
+      if (controller) controller.abort();
+      controller = new AbortController();
+      clearTimeout(refreshTimer);
+      firstButton.disabled = lastButton.disabled = pageInput.disabled = true;
+      previousButton.disabled = nextButton.disabled = refreshButton.disabled = true;
+      historyContent.setAttribute("aria-busy", "true");
+      historyContent.innerHTML = '<p class="info">Loading history...</p>';
+      document.querySelector("#page-status").textContent = "";
+      refreshedContent.textContent = "Last Refreshed · Loading...";
+      errorContent.textContent = "";
+      const query = new URLSearchParams(appliedFilters);
+      query.set("page", page);
+      if (sortColumn !== null) {
+        query.set("sort_column", sortColumn);
+        query.set("sort_direction", sortDirection);
+      }
+      if (refresh) query.set("refresh", "1");
       try {
-        const response = await fetch(historyUrl, { credentials: "same-origin" });
-        let data = null;
-        try {
-          data = await response.json();
-        } catch (error) {
-          data = null;
-        }
-        if (!response.ok) {
-          throw new Error((data && data.detail) || "The request failed.");
-        }
-
-        if (!data.columns.length || !data.rows.length) {
-          historyContent.innerHTML = '<p class="info">This report returned no rows.</p>';
-          return;
-        }
-
-        const headings = data.columns
-          .map((column) => `<th scope="col">${escapeHtml(column)}</th>`)
-          .join("");
-        const rows = data.rows
-          .map(
-            (row) =>
-              `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`,
-          )
-          .join("");
-
-        historyContent.innerHTML =
-          `<div class="table-scroll"><table class="data-table"><thead><tr>${headings}</tr></thead><tbody>${rows}</tbody></table></div>` +
-          `<p class="row-count">${data.row_count} row${data.row_count === 1 ? "" : "s"} shown.</p>`;
+        const response = await fetch(`${historyUrl}?${query}`, {
+          credentials: "same-origin", cache: "no-store", signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Unable to load history.");
+        if (thisRequest !== requestNumber) return;
+        currentPage = data.page;
+        pageCount = data.page_count;
+        const dateOptions = {
+          year: "numeric", month: "short", day: "numeric", hour: "numeric",
+          minute: "2-digit", timeZoneName: "short",
+        };
+        refreshedContent.textContent = "Last Refreshed · " +
+          new Date(data.refreshed_at).toLocaleString(undefined, dateOptions);
+        const headings = data.columns.map((column, index) => {
+          const active = sortColumn === index;
+          const order = active ? (sortDirection === "asc" ? "ascending" : "descending") : "none";
+          const icon = active ? (sortDirection === "asc" ? "↑" : "↓") : "↕";
+          const nextAction = !active ? "Sort ascending" : sortDirection === "asc" ? "Sort descending" : "Restore original order";
+          return `<th scope="col" aria-sort="${order}"><button type="button" class="history-sort" data-sort-column="${index}" title="${nextAction}" aria-label="${escapeHtml(column)}: ${nextAction}">${escapeHtml(column)} <span aria-hidden="true">${icon}</span></button></th>`;
+        }).join("");
+        const rows = data.rows.map(row =>
+          `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+        historyContent.innerHTML = rows
+          ? `<div class="table-scroll"><table class="data-table"><thead><tr>${headings}</tr></thead><tbody>${rows}</tbody></table></div>`
+          : '<p class="info">No history matches these filters.</p>';
+        const start = data.total_rows ? (currentPage - 1) * data.page_size + 1 : 0;
+        const end = data.total_rows ? start + data.row_count - 1 : 0;
+        historyContent.innerHTML += `<p class="row-count">Showing ${start}–${end} of ${data.total_rows} records${data.total_rows === data.max_rows ? " (latest 1,000 limit reached)" : ""}.</p>`;
+        document.querySelector("#page-status").textContent = `of ${pageCount}`;
+        pageInput.value = String(currentPage);
+        pageInput.max = String(pageCount);
+        pageInput.disabled = data.total_rows === 0;
+        firstButton.disabled = previousButton.disabled = currentPage <= 1;
+        lastButton.disabled = nextButton.disabled = currentPage >= pageCount;
+        // Revalidate when this snapshot expires, including while the page stays open.
+        const remaining = new Date(data.expires_at).getTime() - Date.now();
+        refreshTimer = setTimeout(() => loadHistory(currentPage), Math.max(1000, remaining + 250));
       } catch (error) {
-        historyContent.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+        if (thisRequest !== requestNumber || error.name === "AbortError") return;
+        historyContent.innerHTML = "";
+        refreshedContent.textContent = "Last Refreshed · Unavailable";
+        errorContent.textContent = error.message || "Unable to load history. Try Refresh.";
+      } finally {
+        if (thisRequest === requestNumber) {
+          refreshButton.disabled = false;
+          historyContent.setAttribute("aria-busy", "false");
+        }
       }
     }
 
+    historyContent.addEventListener("click", event => {
+      const button = event.target.closest("button[data-sort-column]");
+      if (!button) return;
+      const column = Number(button.dataset.sortColumn);
+      if (sortColumn !== column) {
+        sortColumn = column;
+        sortDirection = "asc";
+      } else if (sortDirection === "asc") {
+        sortDirection = "desc";
+      } else {
+        sortColumn = null;
+        sortDirection = "";
+      }
+      loadHistory(1);
+    });
+
+    filterForm.addEventListener("submit", event => {
+      event.preventDefault();
+      appliedFilters = new URLSearchParams(new FormData(filterForm));
+      loadHistory(1);
+    });
+    filterForm.addEventListener("reset", () => {
+      appliedFilters = new URLSearchParams();
+      loadHistory(1);
+    });
+    function jumpToPage() {
+      if (pageInput.disabled) return;
+      const requestedPage = Number(pageInput.value);
+      if (!Number.isInteger(requestedPage) || requestedPage < 1 || requestedPage > pageCount) {
+        pageInput.value = String(currentPage);
+        return;
+      }
+      if (requestedPage !== currentPage) loadHistory(requestedPage);
+    }
+    pageInput.addEventListener("change", jumpToPage);
+    pageInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        jumpToPage();
+      }
+    });
+    firstButton.onclick = () => loadHistory(1);
+    lastButton.onclick = () => loadHistory(pageCount);
+    previousButton.onclick = () => loadHistory(currentPage - 1);
+    nextButton.onclick = () => loadHistory(currentPage + 1);
+    refreshButton.onclick = () => loadHistory(currentPage, true);
     loadHistory();
   </script>
 {% endblock %}

@@ -12,7 +12,7 @@ Create and activate a virtual environment, then install the requirements:
 
 ```bash
 cd "web-django"
-python3 -m venv .venv
+python3 -m venv .venv # Create a virtual invironment
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
@@ -74,6 +74,9 @@ python manage.py createsuperuser
 ## Start the app
 
 ```bash
+conda deactivate
+cd Project/web-demo
+source .venv/bin/activate
 python manage.py runserver
 ```
 
@@ -105,6 +108,43 @@ Use **REMOVE** to delete the saved connection.
 When updating a saved connection, leave the password blank to keep the stored
 one. This local prototype uses `mysql-connector-python` and does not require a
 macOS ODBC driver.
+
+## History browsing
+
+Purchase and Sales History show the latest 1,000 matching records, 100 per
+page. Filters run in MySQL before that limit: inclusive delivery dates for
+purchases, inclusive order dates for sales, item number/description text, and
+vendor name (purchases) or customer name (sales). Text searches match literal
+substrings; case sensitivity follows the database collation. Apply or clear
+filters to return to page 1. Click a column header to cycle ascending,
+descending, then the original newest-first order. Sorting covers all cached
+matching records (up to 1,000), before pagination, and returns to page 1.
+Numbers sort numerically, text case-insensitively, and missing values stay last.
+Sorting reuses the snapshot and does not update Last Refreshed.
+
+The server caches each filtered snapshot for one hour, separately for each
+user, saved connection version, and report. Page changes reuse that snapshot
+and send only 100 rows to the browser. Refresh bypasses the cache for the
+applied filters. Saving connection settings creates a new cache identity.
+The Last Refreshed eyebrow shows when the database result was fetched, in the
+browser's local timezone. An open page reloads when its snapshot expires;
+background browser throttling can delay that reload. Failed refreshes show an
+error and do not replace a successful cached snapshot.
+
+The existing Django file cache stores these snapshots under `.cache/` on the
+application server, outside static files. Entries can be evicted before one
+hour if the cache reaches its configured capacity. This improves repeat visits;
+it does not eliminate the cost of cleaning, joins, or sorting on a cache miss.
+
+Focused checks (synthetic data; no client database needed):
+
+```bash
+python manage.py test dashboard.tests.test_history dashboard.tests.test_pages
+node --test dashboard/tests/history_ui.test.cjs
+```
+
+The JavaScript checks exercise the template script with a simulated DOM; they
+do not replace a visual browser check.
 
 ## Django admin
 

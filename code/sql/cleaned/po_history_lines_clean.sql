@@ -14,7 +14,7 @@ SELECT
     TRIM(POLN_ITEM_NO) AS POLN_ITEM_NO,
     TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) AS POLN_ITEM_DESC_PREF,
     TRIM(POLN_ITEM_DESC) AS POLN_ITEM_DESC,
-    CAST(POLN_VMI_TAG_NO AS UNSIGNED) AS POLN_VMI_TAG_NO,
+    POLN_VMI_TAG_NO,
 
 -- Quantity Info
     CAST(POLN_ORDER_QTY AS UNSIGNED) AS POLN_ORDER_QTY,
@@ -42,8 +42,7 @@ where POLN_ITEM_NO NOT IN ('1', 'X', 'C', 'F', 'TAG', 'SPEC', 'COIL PROCESS',
                            'WIRE16', 'WIRE14', 'WIRE14HRPO')
 and substring(poln_item_no, 1, 2) between 12 and 67
 and TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) not in ('**', 'COATED', 'MISCELLANEOUS', 
-                                                          'BOND', 'PTD', 'ALMZ'
-                                                          'CR');
+                                                          'BOND', 'PTD', 'ALMZ');
 
 select distinct poln_item_desc_pref
 from po_history_lines_clean;
