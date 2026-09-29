@@ -24,6 +24,7 @@ docs/
 meetings/
 notes/
 research/
+code/python/functions/bid_list/bid_lists/
 
 # Keep this ignore file available for the repository setup
 !.gitignore
