@@ -202,3 +202,6 @@ LOGGING = {
 
 WSGI_APPLICATION = "config.wsgi.application"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Session-private Auction uploads, outside static files and source control.
+AUCTION_UPLOAD_DIR = BASE_DIR / ".auction-uploads"

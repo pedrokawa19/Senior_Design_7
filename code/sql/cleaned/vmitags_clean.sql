@@ -4,8 +4,8 @@ select
     vmitf_key,
     cast(substring(vmit_item_no, 1, 2) as unsigned) as vmit_item_class,
     nullif(trim(vmit_item_no), '') as vmit_item_no,
-    cast(vmit_from_vmi_tag_no as unsigned) as vmit_from_vmi_tag_no,
-    cast(vmit_org_vmi_tag_no as unsigned) as vmit_org_vmi_tag_no,
+    vmit_from_vmi_tag_no,
+    vmit_org_vmi_tag_no,
     cast(vmit_poln_po_num as unsigned) as vmit_poln_po_no,
     cast(vmit_poln_sub_po_no as unsigned) as vmit_poln_sub_po_no,
     cast(vmit_poln_seq_no as unsigned) as vmit_poln_seq_no,
@@ -13,6 +13,7 @@ select
 
     -- Dates
     nullif(cast(vmit_po_date as date), date '1900-01-01') as vmit_po_date,
+    nullif(cast(vmit_po_rcvd_date as date), date '1900-01-01') as vmit_po_rcvd_date,
     nullif(cast(vmit_tag_po_date as date), date '1900-01-01') as vmit_tag_po_date,
 
     -- Financial and quantity fields

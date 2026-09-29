@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from .views import api, auth, pages
+from .views import api, auth, pages, auction
 
 urlpatterns = [
     # Account access
@@ -12,7 +12,8 @@ urlpatterns = [
     path("profile/", pages.profile, name="profile"),
     # Pages
     path("", pages.dashboard, name="dashboard"),
-    path("auction/", pages.auction, name="auction"),
+    path("auction/", auction.page, name="auction"),
+    path("auction/download/", auction.download, name="auction-download"),
     path("history/", pages.history, name="history"),
     path("history/purchases/", pages.history_purchases, name="history-purchases"),
     path("history/sales/", pages.history_sales, name="history-sales"),

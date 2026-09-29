@@ -12,7 +12,7 @@ SELECT
 -- Item Info
     SUBSTRING(POLN_ITEM_NO, 1, 2) AS POLN_ITEM_CLASS_NO,
     TRIM(POLN_ITEM_NO) AS POLN_ITEM_NO,
-    TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) AS POLN_ITEM_DESC_PREF,
+    TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) AS POLN_ITEM_CLASS_NAME,
     TRIM(POLN_ITEM_DESC) AS POLN_ITEM_DESC,
     POLN_VMI_TAG_NO,
 
@@ -22,9 +22,9 @@ SELECT
 
 -- Financial Info
     CAST(POLN_ITEM_PRICE AS DECIMAL(10,2)) AS POLN_ITEM_COST,
+    CAST(POLN_RCVD_PRICE AS DECIMAL(10,2)) AS POLN_RCVD_PRICE,
     CAST(POLN_ITEM_COST AS DECIMAL(10,2)) AS POLN_ITEM_TOTAL_COST,
     CAST(POLN_EXT_AMT AS DECIMAL(10,2)) AS POLN_TOTAL_COST,
-    CAST(POLN_RCVD_PRICE AS DECIMAL(10,2)) AS POLN_RCVD_PRICE,
 
 -- Date Info
     DATE_FORMAT(CAST(POLN_DELIV_DATE AS DATE), '%Y-%m-%d') AS POLN_DELIV_DATE,
@@ -44,11 +44,11 @@ and substring(poln_item_no, 1, 2) between 12 and 67
 and TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) not in ('**', 'COATED', 'MISCELLANEOUS', 
                                                           'BOND', 'PTD', 'ALMZ');
 
-select distinct poln_item_desc_pref
+select distinct poln_item_class_name
 from po_history_lines_clean;
 
 select * from po_history_lines_clean
-where POLN_ITEM_DESC_PREF in ('HRPO', 'HPRO', 'HRP', 'HRPD', 'RHPO');
+where POLN_ITEM_CLASS_NAME in ('HRPO', 'HPRO', 'HRP', 'HRPD', 'RHPO');
 
 
-select distinct POLN_ITEM_DESC_PREF from po_history_lines_clean where POLN_ITEM_CLASS_NO = 66;
+select distinct POLN_ITEM_CLASS_NAME from po_history_lines_clean where POLN_ITEM_CLASS_NO = 66;

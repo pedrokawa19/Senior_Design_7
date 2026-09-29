@@ -1,0 +1,31 @@
+{% if table.rows %}
+<div class="table-scroll">
+<table class="data-table" aria-label="{{ table.kind|title }} coils">
+  <thead><tr>{% for header in table.headers %}
+    <th scope="col" aria-sort="{{ header.aria_sort }}">
+      <form method="post" action="{% url 'auction' %}#{{ table.kind }}-card" data-auction-form>
+        {% csrf_token %}<input type="hidden" name="token" value="{{ state.token }}" />
+        <input type="hidden" name="action" value="sort" />
+        <input type="hidden" name="table" value="{{ table.kind }}" />
+        <input type="hidden" name="column" value="{{ header.index }}" />
+        <button type="submit" class="auction-sort" title="{{ header.next_label }}" aria-label="{{ header.label }}: {{ header.next_label }}">{{ header.label }} <span aria-hidden="true">{{ header.icon }}</span></button>
+      </form>
+    </th>
+  {% endfor %}</tr></thead>
+  <tbody>{% for row in table.rows %}<tr>{% for cell in row %}<td>{{ cell|default_if_none:"" }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table>
+</div>
+{% else %}<p class="info">No {{ table.kind }} products for the applied filters.</p>{% endif %}
+<p class="row-count">Showing {{ table.start }}–{{ table.end }} of {{ table.total }} records.</p>
+<nav aria-label="{{ table.kind|title }} pages">
+<form method="post" action="{% url 'auction' %}#{{ table.kind }}-card" class="auction-pagination" data-auction-form>
+  {% csrf_token %}<input type="hidden" name="token" value="{{ state.token }}" />
+  <input type="hidden" name="action" value="paginate" /><input type="hidden" name="table" value="{{ table.kind }}" />
+  <button class="secondary-button" name="page" value="1" aria-label="First page" title="First page" {% if table.page == 1 %}disabled{% endif %}>«</button>
+  <button class="secondary-button" name="page" value="{{ table.previous }}" aria-label="Previous page" title="Previous page" {% if table.page == 1 %}disabled{% endif %}>‹</button>
+  <input type="number" name="page_number" value="{{ table.page }}" min="1" max="{{ table.pages }}" step="1" aria-label="{{ table.kind|title }} page number" data-page-input {% if not table.total %}disabled{% endif %} />
+  <span>of {{ table.pages }}</span>
+  <button class="secondary-button" name="page" value="{{ table.next }}" aria-label="Next page" title="Next page" {% if table.page == table.pages %}disabled{% endif %}>›</button>
+  <button class="secondary-button" name="page" value="{{ table.pages }}" aria-label="Last page" title="Last page" {% if table.page == table.pages %}disabled{% endif %}>»</button>
+</form>
+</nav>

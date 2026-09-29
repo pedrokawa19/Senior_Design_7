@@ -146,6 +146,84 @@ node --test dashboard/tests/history_ui.test.cjs
 The JavaScript checks exercise the template script with a simulated DOM; they
 do not replace a visual browser check.
 
+## Auction bid-list screening
+
+The Auction tab accepts `.xlsx` and UTF-8, comma-separated `.csv` files. Install
+`requirements.txt` to include `openpyxl` for Excel reading and downloading.
+Uploads are limited to 10 MB, 100 columns, and 100,000 data rows; compressed Excel
+contents are limited to 50 MB. Oversized files are rejected, never truncated.
+The first row must contain nonempty, unique column headings.
+
+Single-sheet workbooks load immediately. Multi-sheet workbooks require an
+explicit worksheet selection. Width is always inches and weight is pounds.
+Column matching ignores case, punctuation and whitespace, using these aliases:
+
+- Width: `Width`, `Width in`, `Width inch`, `Width inches`.
+- Weight: `Weight lbs`, `Weight lb`, `Weight pounds`.
+
+Both measurements support `=`, `≤`, and `≥`, with defaults of width ≤62 inches
+and weight ≤48,000 lb. Filters apply only after **Apply Filters**, and both cards
+share the same applied rules. Every row appears in exactly one group. Missing,
+nonnumeric, infinite, boolean, zero and negative measurements are always excluded.
+Numeric comparisons preserve original cell values. Measurement cells containing
+text units or thousands separators should be converted to numeric cells first.
+Excel formulas are retained as literal text, not evaluated; formula measurement
+cells are therefore excluded. Dates are displayed/exported in ISO format.
+
+Eligible Products appears first. **Show excluded coils** reveals a separate
+Excluded Products card below it; **Hide Excluded Table** hides the whole card.
+Each table has independent 100-row pagination and three-state header sorting
+(ascending, descending, original file order). Sorting covers all rows in that
+group, with numeric values compared numerically and missing values last.
+There is no History-style 1,000-row cap. Applying filters returns both tables
+to page 1; replacing an upload or changing worksheets also restores default
+filters and sorting and hides Excluded.
+
+**Download Excel** exports all eligible and excluded rows into two worksheets,
+including the hidden table and rows beyond the current page, using the applied
+filters and each table's current sort order. Draft filter edits do not affect
+the download. Exported text stays text, including formula-like cell contents.
+
+### Temporary storage and cleanup
+
+Uploads and parsed data are kept in private `.auction-uploads/` files, outside
+static files and ignored by Git. File permissions are 0600, and newly created
+storage directories are 0700. Only an opaque token and small filter/pagination
+preferences go in the Django session. Each snapshot is bound to the authenticated
+user and that exact session; no database connection is required.
+
+Replacing an upload removes the previous file immediately. Otherwise, uploads
+remain associated with the login session, without a separate upload timer.
+After a successful login, the app removes that user's uploads from sessions
+that have expired or logged out. Failed logins do not trigger cleanup, and
+uploads belonging to other users or another active session are preserved.
+
+No scheduled cleanup job or manual command is needed. Logging out makes the
+upload inaccessible; its file is deleted the next time that user successfully
+logs in. Files from abandoned sessions remain on disk until that user returns.
+Django's normal session settings determine when reauthentication is required.
+
+### Auction validation
+
+All fixtures are synthetic and storage is isolated in temporary directories:
+
+```bash
+python manage.py test dashboard.tests.test_auction dashboard.tests.test_pages
+```
+
+An optional browser test uses Playwright and an installed Google Chrome on macOS:
+
+```bash
+python -m pip install playwright
+python manage.py test dashboard.tests.browser_auction
+```
+
+The browser check uses an isolated test database and local test server, exercises
+uploads, worksheet selection, synchronized filtering, visibility, pagination,
+sorting and download, and writes screenshots to `/private/tmp/auction-desktop.png`
+and `/private/tmp/auction-mobile.png`. Change the Chrome executable path in that
+test when using another operating system.
+
 ## Django admin
 
 Open `http://127.0.0.1:8000/admin/` and sign in with the superuser account to
