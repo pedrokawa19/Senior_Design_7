@@ -46,7 +46,6 @@ class PageTests(TestCase):
 
     def test_placeholder_pages_render_their_card(self):
         expected = {
-            "auction": "This is the Auction page",
             "inventory": "This is the Inventory page",
             "model": "This is the Model page",
         }

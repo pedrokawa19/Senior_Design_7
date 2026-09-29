@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Auction{% endblock %}
+{% block content %}
+<style>
+  .auction-page { display: grid; gap: 24px; }
+  .auction-page > .card { min-width: 0; }
+  .auction-page .card-heading { flex-wrap: wrap; }
+  .auction-page [hidden] { display: none !important; }
+  .auction-page .upload-controls, .auction-toolbar, .auction-pagination {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  }
+  .auction-page .upload-controls { margin-top: 20px; }
+  .auction-page input[type=file] { max-width: 100%; }
+  .auction-toolbar { margin: 16px 0; }
+  .auction-link { padding: 0; border: 0; background: none; color: #1f4e79; text-decoration: underline; cursor: pointer; font: inherit; }
+  .auction-filter { margin: 16px 0; }
+  .auction-filter summary { display: inline-block; }
+  .auction-filter form { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .auction-filter label { display: grid; gap: 6px; }
+  .auction-filter input { width: 130px; }
+  .auction-pagination { margin-top: 18px; color: #536273; font-size: .78rem; }
+  .auction-pagination .secondary-button { display: inline-flex; justify-content: center; align-items: center; flex: 0 0 34px; width: 34px; height: 34px; min-height: 34px; padding: 0; font-size: 1.15rem; letter-spacing: 0; }
+  .auction-pagination input { width: 58px; height: 34px; text-align: center; font: inherit; appearance: textfield; -moz-appearance: textfield; }
+  .auction-pagination input::-webkit-inner-spin-button, .auction-pagination input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .auction-page button:disabled { opacity: .4; cursor: default; }
+  .auction-sort { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; }
+  .auction-sort:hover { text-decoration: underline; }
+  .auction-page :focus-visible { outline: 2px solid #1f4e79; outline-offset: 3px; }
+  .auction-page .download-link { display: inline-flex; align-items: center; text-decoration: none; }
+  .auction-page .file-label { overflow-wrap: anywhere; }
+</style>
+<main class="page-content auction-page">
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <section class="card" aria-labelledby="upload-title">
+    <h2 id="upload-title">Upload Auction List</h2>
+    <form method="post" enctype="multipart/form-data" class="upload-controls" data-auction-form>
+      {% csrf_token %}<input type="hidden" name="action" value="upload" />
+      <label for="id_file">Excel or CSV · up to 10 MB{{ upload_form.file }}</label>
+      <button type="submit" class="secondary-button">{% if snapshot %}Replace upload{% else %}Upload{% endif %}</button>
+    </form>
+    {% if snapshot %}
+      <p class="file-label" style="margin-top: 16px">{{ snapshot.name }} attached.</p>
+      {% if snapshot.sheets|length > 1 %}
+        <form method="post" class="upload-controls" data-auction-form>
+          {% csrf_token %}<input type="hidden" name="action" value="sheet" />
+          <input type="hidden" name="token" value="{{ state.token }}" />
+          <label for="sheet-select">Worksheet
+            <select id="sheet-select" name="sheet" required>
+              <option value="">Choose a worksheet</option>
+              {% for sheet in snapshot.sheets %}<option value="{{ sheet }}" {% if sheet == snapshot.sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}
+            </select>
+          </label>
+          <button class="secondary-button" type="submit">Load worksheet</button>
+        </form>
+      {% elif snapshot.sheet %}<p class="hint">Worksheet: {{ snapshot.sheet }}</p>{% endif %}
+    {% endif %}
+    <p id="auction-progress" class="info" role="status" hidden>Processing…</p>
+  </section>
+
+  {% if eligible %}
+  <section class="card" id="eligible-card" aria-labelledby="eligible-title">
+    <div class="card-heading"><h2 id="eligible-title">Eligible Products</h2>
+      <a class="secondary-button download-link" href="{% url 'auction-download' %}">Download Excel</a>
+    </div>
+    <p class="hint">Screening by width and weight only. Eligibility is not a purchasing recommendation.</p>
+    <div class="auction-toolbar">
+      <span>Filtered out {{ excluded.total }} rows.</span>
+      <form method="post" action="{% url 'auction' %}#excluded-card" data-auction-form>
+        {% csrf_token %}<input type="hidden" name="token" value="{{ state.token }}" />
+        <input type="hidden" name="action" value="show" />
+        <button type="submit" class="auction-link" aria-expanded="{{ state.show_excluded|yesno:'true,false' }}" aria-controls="excluded-card">Show excluded coils</button>
+      </form>
+    </div>
+    {% include "auction/filters.html" with filter_form=eligible_filter kind="eligible" %}
+    {% include "auction/table.html" with table=eligible %}
+  </section>
+  {% if state.show_excluded %}
+  <section class="card" id="excluded-card" aria-labelledby="excluded-title">
+    <h2 id="excluded-title">Excluded Products</h2>
+    <form method="post" action="{% url 'auction' %}#eligible-card" class="auction-toolbar" data-auction-form>
+      {% csrf_token %}<input type="hidden" name="token" value="{{ state.token }}" />
+      <input type="hidden" name="action" value="hide" />
+      <button type="submit" class="secondary-button">Hide Excluded Table</button>
+    </form>
+    {% include "auction/filters.html" with filter_form=excluded_filter kind="excluded" %}
+    {% include "auction/table.html" with table=excluded %}
+  </section>
+  {% endif %}
+  {% endif %}
+</main>
+<script>
+  // Normal Django form submissions keep all rules and applied state on the server.
+  // Block repeated clicks while a submission is in flight without disabling its data.
+  let submitting = false;
+  document.querySelectorAll('[data-auction-form]').forEach(form => {
+    form.addEventListener('submit', event => {
+      if (submitting) { event.preventDefault(); return; }
+      submitting = true;
+      document.querySelector('#auction-progress').hidden = false;
+      form.setAttribute('aria-busy', 'true');
+    });
+  });
+  document.querySelectorAll('[data-page-input]').forEach(input => {
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (input.form.reportValidity()) input.form.requestSubmit();
+      }
+    });
+    input.addEventListener('change', () => {
+      if (input.form.reportValidity()) input.form.requestSubmit();
+    });
+  });
+  window.addEventListener('pageshow', () => {
+    submitting = false;
+    document.querySelector('#auction-progress').hidden = true;
+    document.querySelectorAll('[aria-busy]').forEach(element => element.removeAttribute('aria-busy'));
+  });
+</script>
+{% endblock %}

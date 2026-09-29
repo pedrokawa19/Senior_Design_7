@@ -26,11 +26,6 @@ def _placeholder(request, tab, title):
 
 
 @login_required
-def auction(request):
-    return _placeholder(request, "auction", "Auction")
-
-
-@login_required
 def inventory(request):
     return _placeholder(request, "inventory", "Inventory")
 

@@ -6,6 +6,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from ..forms import SignupForm
+from ..services.auction_storage import cleanup_after_login
 
 
 def _render_login(request, login_form, signup_form, active_mode):
@@ -22,7 +23,9 @@ def login_view(request):
 
     form = AuthenticationForm(request, data=request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
-        login(request, form.get_user())
+        user = form.get_user()
+        login(request, user)
+        cleanup_after_login(user.pk)
         return redirect("dashboard")
 
     return _render_login(request, form, SignupForm(), "login")

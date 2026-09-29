@@ -1,5 +1,8 @@
 """Sign-up, log-in, log-out, and protection of every page."""
 
+import tempfile
+from pathlib import Path
+
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -9,6 +12,13 @@ from .support import ACCOUNT_PASSWORD, PROTECTED_PAGES, TEST_ENCRYPTION_KEY
 
 @override_settings(CREDENTIAL_ENCRYPTION_KEY=TEST_ENCRYPTION_KEY)
 class AuthenticationTests(TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        override = override_settings(AUCTION_UPLOAD_DIR=Path(directory.name))
+        override.enable()
+        self.addCleanup(override.disable)
+
     def sign_up(self, username="buyer-one", password=ACCOUNT_PASSWORD, confirmation=None):
         return self.client.post(
             reverse("signup"),

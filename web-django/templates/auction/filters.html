@@ -1,0 +1,11 @@
+<p class="hint">Applied: Width {% if state.filters.width_op == 'eq' %}={% elif state.filters.width_op == 'ge' %}≥{% else %}≤{% endif %} {{ state.filters.width }} inches · Weight {% if state.filters.weight_op == 'eq' %}={% elif state.filters.weight_op == 'ge' %}≥{% else %}≤{% endif %} {{ state.filters.weight }} lb</p>
+<details class="auction-filter">
+  <summary class="secondary-button">Filter</summary>
+  <form method="post" action="{% url 'auction' %}#{{ kind }}-card" data-auction-form>
+    {% csrf_token %}<input type="hidden" name="token" value="{{ state.token }}" />
+    <input type="hidden" name="action" value="filter" />
+    {% for field in filter_form %}<label for="{{ field.id_for_label }}">{{ field.label }}{{ field }}</label>{% endfor %}
+    <button type="submit" class="secondary-button">Apply Filters</button>
+  </form>
+  <p class="hint">Applies to both tables. Missing or invalid measurements are always excluded.</p>
+</details>
