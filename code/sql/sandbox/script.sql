@@ -77,3 +77,112 @@ LEFT JOIN order_history_lines_clean ol
 LEFT JOIN order_history_hdrs_clean oh
     ON ol.ordlf_ordh_key = oh.ordhf_key
 limit 20;
+
+
+
+
+
+
+-- working on inventory cost table 
+
+
+
+SELECT * from po_history_lines_clean;
+
+SET @as_of_date = '2026-09-28';
+
+SELECT
+    @as_of_date AS as_of_date,
+    i.item_number,
+    i.item_desc,
+
+    COALESCE(t.quantity_bought, 0) AS quantity_bought,
+    COALESCE(t.purchase_cost, 0) AS purchase_cost,
+
+    ROUND(
+        t.purchase_cost / NULLIF(t.quantity_bought, 0),
+        6
+    ) AS avg_purchase_cost_per_unit,
+
+    COALESCE(t.quantity_sold, 0) AS quantity_sold,
+    COALESCE(t.sales_revenue, 0) AS sales_revenue,
+
+    ROUND(
+        t.sales_revenue / NULLIF(t.quantity_sold, 0),
+        6
+    ) AS avg_selling_price_per_unit,
+
+    COALESCE(t.cost_of_goods_sold, 0) AS cost_of_goods_sold,
+
+    COALESCE(t.quantity_bought, 0)
+        - COALESCE(t.quantity_sold, 0)
+        AS estimated_quantity_remaining,
+
+    COALESCE(t.purchase_cost, 0)
+        - COALESCE(t.cost_of_goods_sold, 0)
+        AS estimated_inventory_cost,
+
+    ROUND(
+        (COALESCE(t.purchase_cost, 0)
+            - COALESCE(t.cost_of_goods_sold, 0))
+        / NULLIF(
+            COALESCE(t.quantity_bought, 0)
+                - COALESCE(t.quantity_sold, 0),
+            0
+        ),
+        6
+    ) AS estimated_cost_per_remaining_unit
+
+FROM items_clean i
+
+LEFT JOIN (
+    SELECT
+        item_number,
+        SUM(quantity_bought) AS quantity_bought,
+        SUM(purchase_cost) AS purchase_cost,
+        SUM(quantity_sold) AS quantity_sold,
+        SUM(sales_revenue) AS sales_revenue,
+        SUM(cost_of_goods_sold) AS cost_of_goods_sold
+
+    FROM (
+        -- Purchases through the selected date
+        SELECT
+            POLN_ITEM_NO AS item_number,
+            CAST(POLN_ORDER_QTY AS DECIMAL(18,4))
+                AS quantity_bought,
+            POLN_TOTAL_COST AS purchase_cost,
+            0 AS quantity_sold,
+            0 AS sales_revenue,
+            0 AS cost_of_goods_sold
+
+        FROM po_history_lines_clean
+
+        WHERE POLN_DATE_GOODS_RECD > '1900-01-01'
+          AND POLN_DATE_GOODS_RECD <= @as_of_date
+
+        UNION ALL
+
+        -- Sales through the selected date
+        SELECT
+            l.ORDL_ITEM_NO AS item_number,
+            0 AS quantity_bought,
+            0 AS purchase_cost,
+            CAST(l.ORDL_ORDER_QTY AS DECIMAL(18,4))
+                AS quantity_sold,
+            l.ORDL_TOTAL_REV AS sales_revenue,
+            l.ORDL_TOTAL_COST AS cost_of_goods_sold
+
+        FROM order_history_lines_clean l
+
+        INNER JOIN order_history_hdrs_clean h
+            ON l.ORDLF_ORDH_KEY = h.ORDHF_KEY
+
+        WHERE h.ORDH_INV_DATE > '1900-01-01'
+          AND h.ORDH_INV_DATE <= @as_of_date
+    ) transactions
+
+    GROUP BY item_number
+) t
+    ON i.item_number = t.item_number
+
+ORDER BY i.item_number;

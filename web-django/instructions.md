@@ -77,6 +77,7 @@ python manage.py createsuperuser
 conda deactivate
 cd Project/web-demo
 source .venv/bin/activate
+python manage.py migrate
 python manage.py runserver
 ```
 
