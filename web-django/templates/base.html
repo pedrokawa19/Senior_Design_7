@@ -19,7 +19,10 @@
         background: #f5f0e6;
       }
       .dashboard-header {
-        padding: 28px clamp(24px, 7vw, 112px) 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 20px clamp(24px, 7vw, 112px) 0;
         color: #fff;
         background: #102a43;
         border-bottom: 5px solid #dfe7ed;
@@ -254,16 +257,44 @@
         background: #fff;
         font: inherit;
       }
-      .chart-summary {
+      .index-card .card-heading > div {
+        flex: 1;
+        min-width: 0;
+      }
+      .market-heading {
         display: flex;
         flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 10px;
-        color: #536273;
-        font-size: 0.88rem;
+        align-items: baseline;
+        gap: 8px 12px;
       }
+      .market-heading h2 {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .market-quote {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 10px;
+        white-space: nowrap;
+      }
+      .market-quote, .market-quote .growth { font-size: 1.2rem; }
+      .chart-tooltip {
+        position: absolute;
+        z-index: 1;
+        pointer-events: none;
+        padding: 8px 10px;
+        border-radius: 4px;
+        background: #102a43;
+        color: #fff;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        max-width: calc(100% - 16px);
+      }
+      .chart-tooltip[hidden] { display: none; }
+      .chart-hover-guide { stroke: #536273; stroke-dasharray: 4 3; }
       .chart-wrapper {
+        position: relative;
         width: 100%;
         aspect-ratio: 16 / 9;
         min-height: 260px;

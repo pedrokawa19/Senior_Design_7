@@ -18,7 +18,8 @@ class PageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Most Profitable Products")
-        self.assertContains(response, "Index Performance")
+        self.assertContains(response, "Market Performance")
+        self.assertContains(response, "VanEck Steel ETF")
         self.assertContains(response, "card profitability-card")
 
     def test_dashboard_no_longer_manages_the_database_connection(self):

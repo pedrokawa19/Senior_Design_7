@@ -10,11 +10,16 @@ from django.urls import reverse
 
 from ..credentials import CredentialStorageUnavailable, public_connection
 from ..services import connections
+from ..services.market import TICKER_NAMES
 
 
 @login_required
 def dashboard(request):
-    return render(request, "dashboard.html", {"active_tab": "dashboard"})
+    return render(request, "dashboard.html", {
+        "active_tab": "dashboard",
+        "ticker_names": TICKER_NAMES,
+        "default_ticker_name": TICKER_NAMES["SLX"],
+    })
 
 
 def _placeholder(request, tab, title):

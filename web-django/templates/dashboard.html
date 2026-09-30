@@ -17,15 +17,21 @@
         <div class="card-heading">
           <div>
             <p class="eyebrow">Market Performance</p>
-            <h2><span id="ticker-title">SLX</span> Index Performance</h2>
+            <div class="market-heading" aria-live="polite">
+              <h2 id="ticker-title">{{ default_ticker_name }}</h2>
+              <div class="market-quote">
+                <strong id="ending-close" aria-label="Selected range ending close"></strong>
+                <strong id="growth" class="growth"></strong>
+              </div>
+            </div>
           </div>
-          <strong id="growth" class="growth"></strong>
         </div>
         <div class="date-controls">
           <label
             >Ticker<select id="ticker">
-              <option>SLX</option>
-              <option>SPY</option>
+              {% for symbol, name in ticker_names.items %}
+              <option value="{{ symbol }}" data-name="{{ name }}">{{ symbol }}</option>
+              {% endfor %}
             </select></label
           ><label
             >From<input id="start-date" type="date" value="2024-01-01" /></label
@@ -42,6 +48,8 @@
 
       let latestMarketData = null;
       let chartObserver = null;
+      let chartMetrics = null;
+      let marketRequest = 0;
 
       document.querySelector("#end-date").value = new Date()
         .toISOString()
@@ -114,6 +122,8 @@
             : (index / (values.length - 1)) * innerWidth);
         const y = (value) => pad.top + ((max - value) / (max - min)) * innerHeight;
 
+        chartMetrics = { x, y, pad, innerWidth, baseline, width };
+
         const linePoints = values
           .map((item, index) => `${x(index).toFixed(1)},${y(item.close).toFixed(1)}`)
           .join(" ");
@@ -154,6 +164,10 @@
             <line class="chart-axis" x1="${pad.left}" x2="${pad.left}" y1="${pad.top}" y2="${baseline.toFixed(1)}"></line>
             <line class="chart-axis" x1="${pad.left}" x2="${(pad.left + innerWidth).toFixed(1)}" y1="${baseline.toFixed(1)}" y2="${baseline.toFixed(1)}"></line>
             ${labels}
+            <g id="chart-hover" visibility="hidden" pointer-events="none">
+              <line id="chart-hover-guide" class="chart-hover-guide" y1="${pad.top}" y2="${baseline}"></line>
+              <circle id="chart-hover-dot" class="chart-marker" r="5"></circle>
+            </g>
           </svg>`;
       }
 
@@ -167,12 +181,57 @@
         if (width < 60 || height < 60) {
           return;
         }
-        wrapper.innerHTML = buildChartSvg(latestMarketData, width, height);
+        wrapper.innerHTML = buildChartSvg(latestMarketData, width, height)
+          + '<div class="chart-tooltip" hidden role="status"></div>';
+        const tooltip = wrapper.querySelector(".chart-tooltip");
+        const hover = wrapper.querySelector("#chart-hover");
+        const guide = wrapper.querySelector("#chart-hover-guide");
+        const dot = wrapper.querySelector("#chart-hover-dot");
+        const values = latestMarketData.prices;
+        const metrics = chartMetrics;
+        let selectedIndex = values.length - 1;
+
+        // Snap to a real trading day and keep the tooltip inside the chart.
+        function showPoint(index) {
+          selectedIndex = Math.max(0, Math.min(values.length - 1, index));
+          const point = values[selectedIndex];
+          const x = metrics.x(selectedIndex);
+          const y = metrics.y(point.close);
+          guide.setAttribute("x1", x);
+          guide.setAttribute("x2", x);
+          dot.setAttribute("cx", x);
+          dot.setAttribute("cy", y);
+          hover.setAttribute("visibility", "visible");
+          tooltip.textContent = `${point.date} · $${point.close.toFixed(2)}`;
+          tooltip.hidden = false;
+          tooltip.style.left = `${Math.max(8, Math.min(x + 12, width - tooltip.offsetWidth - 8))}px`;
+          tooltip.style.top = `${Math.max(8, Math.min(y - tooltip.offsetHeight - 12, height - tooltip.offsetHeight - 8))}px`;
+        }
+        function hidePoint() {
+          tooltip.hidden = true;
+          hover.setAttribute("visibility", "hidden");
+        }
+        wrapper.onpointermove = wrapper.onpointerdown = (event) => {
+          const bounds = wrapper.getBoundingClientRect();
+          const x = (event.clientX - bounds.left) * width / bounds.width;
+          showPoint(Math.round((x - metrics.pad.left) / metrics.innerWidth * (values.length - 1)));
+        };
+        wrapper.onpointerleave = wrapper.onblur = hidePoint;
+        wrapper.onfocus = () => showPoint(selectedIndex);
+        // Keyboard users can inspect the same points without a mouse.
+        wrapper.onkeydown = (event) => {
+          if (event.key === "Escape") { hidePoint(); return; }
+          const index = {
+            ArrowLeft: selectedIndex - 1, ArrowRight: selectedIndex + 1,
+            Home: 0, End: values.length - 1,
+          }[event.key];
+          if (index !== undefined) { event.preventDefault(); showPoint(index); }
+        };
       }
 
       function showMarketData(data) {
         latestMarketData = data;
-        marketContent.innerHTML = `<div class="chart-summary"><span>$${data.first_close.toFixed(2)} starting close</span><span>$${data.last_close.toFixed(2)} ending close</span></div><div class="chart-wrapper" id="chart-wrapper"></div>`;
+        marketContent.innerHTML = `<div class="chart-wrapper" id="chart-wrapper" tabindex="0" aria-label="${escapeHtml(data.ticker)} closing prices. Hover or use left and right arrow keys to inspect dates and prices."></div>`;
         renderChart();
 
         if (chartObserver) {
@@ -183,10 +242,16 @@
       }
 
       async function loadMarket() {
-        const ticker = document.querySelector("#ticker").value;
+        // Only the latest selection may update the heading and chart.
+        const requestId = ++marketRequest;
+        const selection = document.querySelector("#ticker");
+        const ticker = selection.value;
         const startDate = document.querySelector("#start-date").value;
         const endDate = document.querySelector("#end-date").value;
-        document.querySelector("#ticker-title").textContent = ticker;
+        document.querySelector("#ticker-title").textContent = selection.selectedOptions[0].dataset.name;
+        document.querySelector("#ending-close").textContent = "";
+        document.querySelector("#growth").textContent = "";
+        if (chartObserver) chartObserver.disconnect();
         latestMarketData = null;
         marketContent.innerHTML = `<p class="info">Loading ${escapeHtml(ticker)} data...</p>`;
         try {
@@ -196,6 +261,10 @@
             ticker: ticker,
           });
           const data = await jsonRequest(`/api/index-performance?${query}`);
+          if (requestId !== marketRequest) return;
+          if (!data.prices || !data.prices.length) throw new Error("No closing prices found for this date range.");
+          document.querySelector("#ticker-title").textContent = data.name || selection.selectedOptions[0].dataset.name;
+          document.querySelector("#ending-close").textContent = "$" + data.last_close.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           const growthElement = document.querySelector("#growth");
           growthElement.textContent = `${data.growth_percentage >= 0 ? "+" : ""}${data.growth_percentage.toFixed(2)}%`;
           growthElement.className =
@@ -204,6 +273,8 @@
               : "growth growth-negative";
           showMarketData(data);
         } catch (error) {
+          if (requestId !== marketRequest) return;
+          document.querySelector("#ending-close").textContent = "";
           document.querySelector("#growth").textContent = "";
           marketContent.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
         }

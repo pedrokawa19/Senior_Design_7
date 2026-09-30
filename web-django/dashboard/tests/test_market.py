@@ -1,5 +1,9 @@
 """Input validation for the market performance endpoint."""
 
+from unittest.mock import patch
+
+import pandas as pd
+
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -34,3 +38,26 @@ class MarketEndpointTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+
+    @patch("dashboard.services.market.yf.download")
+    def test_names_and_selected_range_prices(self, download):
+        download.return_value = pd.DataFrame(
+            {"Close": [100.0, 110.0]},
+            index=pd.to_datetime(["2024-01-02", "2024-01-05"]),
+        )
+        for ticker, name in [
+            ("SLX", "VanEck Steel ETF"),
+            ("SPY", "State Street SPDR S&P 500 ETF Trust"),
+        ]:
+            with self.subTest(ticker=ticker):
+                response = self.client.get(reverse("index-performance"), {
+                    "start_date": "2024-01-01", "end_date": "2024-01-07", "ticker": ticker,
+                })
+                self.assertEqual(response.status_code, 200)
+                data = response.json()
+                self.assertEqual(data["name"], name)
+                self.assertEqual(data["last_close"], 110.0)
+                self.assertEqual(data["growth_percentage"], 10.0)
+                self.assertEqual(data["prices"][-1], {"date": "2024-01-05", "close": 110.0})
+                self.assertEqual(download.call_args.kwargs["end"], "2024-01-08")

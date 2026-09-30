@@ -9,7 +9,12 @@ from datetime import date, timedelta
 import pandas as pd
 import yfinance as yf
 
-SUPPORTED_TICKERS = {"SPY", "SLX"}
+# Keep the two supported fund names local to avoid another market-data request.
+TICKER_NAMES = {
+    "SLX": "VanEck Steel ETF",
+    "SPY": "State Street SPDR S&P 500 ETF",
+}
+SUPPORTED_TICKERS = set(TICKER_NAMES)
 
 # The internal network may not allow outbound traffic, so never wait forever.
 DOWNLOAD_TIMEOUT_SECONDS = 15
@@ -46,6 +51,7 @@ def get_index_performance(start_date: date, end_date: date, ticker: str):
 
     return {
         "ticker": ticker,
+        "name": TICKER_NAMES[ticker],
         "first_close": first_close,
         "last_close": last_close,
         "growth_percentage": round(growth_percentage, 2),

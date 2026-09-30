@@ -13,15 +13,6 @@
       <dl class="profile-grid">
         <dt>Username</dt>
         <dd>{{ user.username }}</dd>
-        <dt>Account password</dt>
-        <dd>
-          <span class="masked">••••••••••</span>
-          <p class="hint">
-            Your account password is stored as a one-way hash, so it cannot be shown here
-            or recovered by anyone. The database password below can be revealed because the
-            app has to replay it to connect.
-          </p>
-        </dd>
       </dl>
 
       <details class="disclosure" {% if open_database %}open{% endif %}>
