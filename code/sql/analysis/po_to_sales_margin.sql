@@ -7,7 +7,7 @@ SELECT
     pl.poln_vendor_name,
     pl.poln_item_class_no,
     pl.poln_item_no,
-    pl.POLN_ITEM_CLASS_NAME,
+    pl.poln_item_class_name,
     pl.poln_item_desc,
     pl.poln_date_goods_recd,
     pl.poln_deliv_date,
@@ -16,7 +16,7 @@ SELECT
 
     -- Sell Information (Customer Orders)
     oh.ordh_cust_no,
-    ol.ORDL_ITEM_CLASS_NO,
+    ol.ordl_item_class_no,
     ol.ordl_item_no,
     ol.ordl_item_class_name,
     ol.ordl_item_desc,
