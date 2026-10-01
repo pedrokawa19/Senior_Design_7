@@ -56,9 +56,10 @@ AND SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) NOT IN ('ALMZ', 'ADJUSTMENT', 
                                  'MISCELLANEOUS', 'PTD', 'BOND', 'PL', 
                                  'FLPL', 'AZ50', 'EG', 'GA/GI', 
                                  'SCRAP', 'GF', 'CLEAT', 'POTP', 
-                                 'POTLDRY', 'SEC', '4', '5',''
+                                 'POTLDRY', 'SEC', '4', '5','', 'GVLM', 'GLVM', 'HRFL', 'CRFH'
 )
 AND CAST(LEFT(TRIM(ORDL_ITEM_NO), 2) AS UNSIGNED) BETWEEN 12 AND 67;
 
+select * from order_history_lines_clean where ORDL_ITEM_CLASS_NAME IN ('GVNL', 'GLVN', 'GALV/GVNL', 'GN/GV', 'GV', 'GVLN', 'GLV-GNL', 'GALVEMB', 'GNVL');
 
-select * from order_history_lines_clean join vmitags_clean where ORDL_VMIT_TAG_NO = vmitf_key;
+select DISTINCT ORDL_ITEM_CLASS_NAME from order_history_lines_clean; 
