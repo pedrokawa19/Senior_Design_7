@@ -10,45 +10,45 @@ SELECT
     TRIM(POLN_VENDOR_NAME) AS POLN_VENDOR_NAME,
 
 -- Item Info
-    SUBSTRING(POLN_ITEM_NO, 1, 2) AS POLN_ITEM_CLASS_NO,
     TRIM(POLN_ITEM_NO) AS POLN_ITEM_NO,
+    SUBSTRING(POLN_ITEM_NO, 1, 2) AS POLN_ITEM_CLASS_NO,
     TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) AS POLN_ITEM_CLASS_NAME,
     TRIM(POLN_ITEM_DESC) AS POLN_ITEM_DESC,
     POLN_VMI_TAG_NO,
 
--- Quantity Info
-    CAST(POLN_ORDER_QTY AS UNSIGNED) AS POLN_ORDER_QTY,
-    CAST(POLN_PREVRECD_QTY AS UNSIGNED) AS POLN_PREVRECD_QTY,
-
--- Financial Info
-    CAST(POLN_ITEM_PRICE AS DECIMAL(10,2)) AS POLN_ITEM_COST,
-    CAST(POLN_RCVD_PRICE AS DECIMAL(10,2)) AS POLN_RCVD_PRICE,
-    CAST(POLN_ITEM_COST AS DECIMAL(10,2)) AS POLN_ITEM_TOTAL_COST,
-    CAST(POLN_EXT_AMT AS DECIMAL(10,2)) AS POLN_TOTAL_COST,
-
 -- Date Info
     DATE_FORMAT(CAST(POLN_DELIV_DATE AS DATE), '%Y-%m-%d') AS POLN_DELIV_DATE,
-    DATE_FORMAT(nullif(CAST(POLN_DATE_GOODS_RECD AS DATE), '1900-01-01'), '%Y-%m-%d') AS POLN_DATE_GOODS_RECD,
 
--- Location Info
-    TRIM(POLN_ITEM_BIN) AS POLN_ITEM_BIN,
-    TRIM(POLN_SHIPTO_LOC) AS POLN_SHIPTO_LOC,
+-- Quantity Info
+    CAST(POLN_ORDER_QTY AS UNSIGNED) AS POLN_ORDER_QTY,
+
+-- Financial Info
+    CAST(POLN_ITEM_PRICE AS DECIMAL(10,2)) AS POLN_ITEM_PRICE,
+    CAST(POLN_RCVD_PRICE AS DECIMAL(10,2)) AS POLN_RCVD_PRICE,
+    cast(POLN_RCVD_PRICE - POLN_ITEM_PRICE as DECIMAL(10,2)) AS POLN_PROCESSSING_COST,
+    CAST(POLN_EXT_AMT AS DECIMAL(10,2)) AS POLN_TOTAL_COST,
 
 -- Other Info
-    TRIM(POLN_VEND_UOM) AS POLN_VEND_UOM,
     CAST(POLN_ITEM_CONV_FACTOR AS UNSIGNED) AS POLN_CONV_FACTOR
 from po_history_lines
-where POLN_ITEM_NO NOT IN ('1', 'X', 'C', 'F', 'TAG', 'SPEC', 'COIL PROCESS',
-                           'WIRE16', 'WIRE14', 'WIRE14HRPO')
+
+where POLN_ITEM_NO NOT IN ('1', 'X', 'C', 'F', 'TAG', 'SPEC', 
+                           'COIL PROCESS', 'WIRE16', 'WIRE14', 'WIRE14HRPO')
+
 and substring(poln_item_no, 1, 2) between 12 and 67
-and TRIM(SUBSTRING_INDEX(POLN_ITEM_DESC, ' ', 1)) not in ('**', 'COATED', 'MISCELLANEOUS', 
-                                                          'BOND', 'PTD', 'ALMZ');
 
-select distinct poln_item_class_name
-from po_history_lines_clean;
+and TRIM(SUBSTRING_INDEX(
+            POLN_ITEM_DESC, ' ', 1)) not in ('**', 'COATED', 'MISCELLANEOUS', 
+                                             'BOND', 'PTD', 'ALMZ', 'PTDCR', 'GVLM', 'GLVM', 'GLVM',
+                                             'CRFH', 'PTDGVLM', 'EG', 'EMBGALV', 'PTDGALV', 
+                                             'POTLDRY', 'GALVEMB', 'PTDHR', '2', 'HRPTD', 
+                                             'SECONDARY', 'PAINTED', 'PTDGVLMGV', 'PTDGALV/GVLM',
+                                             'HRFP', 'POTP', 'GF', 'FLPL')
+and poln_order_qty > 0;
 
-select * from po_history_lines_clean
-where POLN_ITEM_CLASS_NAME in ('HRPO', 'HPRO', 'HRP', 'HRPD', 'RHPO');
 
 
-select distinct POLN_ITEM_CLASS_NAME from po_history_lines_clean where POLN_ITEM_CLASS_NO = 66;
+-- Quick Looks
+
+    -- Full Table
+    select * from po_history_lines_clean;
