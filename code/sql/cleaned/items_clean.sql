@@ -55,3 +55,4 @@ HAVING item_number_suff NOT IN ('X', 'T', 'DEL', 'DROP')
     AND item_class_name NOT IN ('ALMZ', 'PTDCR', 'CLEAT', 'GVLM');
 
 
+select * from items_clean;
