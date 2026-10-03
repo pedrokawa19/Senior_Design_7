@@ -43,8 +43,6 @@ def _apply_session_guards(connection):
             try:
                 cursor.execute(statement)
             except mysql.connector.Error:
-                # MariaDB and older MySQL name these differently; losing a guard
-                # must not stop the report from running.
                 logger.info("Database session guard not supported by this server.")
     finally:
         cursor.close()
