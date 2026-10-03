@@ -24,18 +24,18 @@ def run(query):
     return pd.read_sql(query, con=engine)
 
 
-query = """
-select 
-item_class_name,
-    sum(item_ytd_profit) as ytd_profit_per_class,
-    round(sum(item_ytd_profit) / (
-        select sum(item_ytd_profit)
-        from items_clean
-    ) * 100, 2) as profit_share
- from items_clean
-group by item_class_name
-order by ytd_profit_per_class desc
-limit 5;
+TOP_FIVE_QUERY = """
+    select
+        item_class_name,
+        sum(item_ytd_profit) as ytd_profit_per_class,
+        round(sum(item_ytd_profit) / (
+            select sum(item_ytd_profit)
+            from items_clean
+        ) * 100, 2) as profit_share
+    from items_clean
+    group by item_class_name
+    order by ytd_profit_per_class desc
+    limit 5;
 """
 
-print(run(query))
+print(run(TOP_FIVE_QUERY))
