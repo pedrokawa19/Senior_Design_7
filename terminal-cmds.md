@@ -1,7 +1,7 @@
 # Terminal Command Reference
 
 A practical command reference for the Vision Metals Senior Design project. These examples assume macOS with `zsh` and a terminal opened in the project folder.
-
+test
 ## Collaboration Workflow
 
 ### 1. Create a Branch
