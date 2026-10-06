@@ -44,3 +44,16 @@ ORDER BY pl.poln_date_goods_recd DESC;
 
 
 select * from po_to_sales_margin;
+
+-- Full po lines
+select * from po_history_lines_clean;
+
+-- Full ord lines
+select * from order_history_lines_clean;
+
+
+select ordl_vmit_tag_no from order_history_lines_clean
+where ordl_vmit_tag_no in (select poln_vmi_tag_no from po_history_lines_clean);
+
+
+select * from vmitags_clean where vmit_from_vmi_tag_no <> vmit_org_vmi_tag_no;

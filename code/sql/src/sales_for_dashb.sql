@@ -4,14 +4,14 @@ ordlf_key,
 ordl_vmit_tag_no,
 
 -- Customer
-oh.ordh_cust_no as ordh_cust_no,
+oh.ordh_cust_no as ORDH_CUST_NO,
 
 -- Item Details
 ordl_item_no,
 ordl_item_desc,
 
 -- Date
-date_format(oh.ordh_ord_date, '%Y-%m-%d') as ordh_ord_date,
+date_format(oh.ordh_ord_date, '%Y-%m-%d') as ORDH_ORD_DATE,
 
 -- Quantity and Price
 ordl_order_qty,
