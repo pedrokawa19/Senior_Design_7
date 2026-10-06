@@ -52,4 +52,7 @@ FROM items
 WHERE item_class BETWEEN 12 AND 67
     AND item_number != 0
 HAVING item_number_suff NOT IN ('X', 'T', 'DEL', 'DROP')
-    AND item_class_name NOT IN ('ALMZ', 'PTDCR', 'CLEAT', 'GNVL');
+    AND item_class_name NOT IN ('ALMZ', 'PTDCR', 'CLEAT', 'GVLM');
+
+
+select * from items_clean;

@@ -25,17 +25,25 @@ class HistoryQueryNotConfigured(Exception):
 
 PURCHASE_HISTORY_QUERY = """
 select
+-- IDs
 polnf_key,
+poln_vmi_tag_no,
+
+-- Vendor
 poln_vendor_name,
+
+-- Item Details
 poln_item_no,
 poln_item_desc,
-poln_order_qty,
-poln_item_cost,
-poln_item_total_cost,
-POLN_TOTAL_COST,
-POLN_RCVD_PRICE,
+
+-- Date
 poln_deliv_date,
-poln_date_goods_recd
+
+-- Quantity and Price
+poln_order_qty,
+poln_item_price,
+poln_total_cost
+
 from po_history_lines_clean
 {where}
 order by poln_deliv_date desc, polnf_key desc
@@ -44,17 +52,28 @@ limit 1000;
 
 SALES_HISTORY_QUERY = """
 select 
+-- IDs
 ordlf_key,
-ordlf_ordh_key,
+ordl_vmit_tag_no,
+
+-- Customer
+oh.ordh_cust_no as ordh_cust_no,
+
+-- Item Details
 ordl_item_no,
 ordl_item_desc,
-ordl_item_class_no,
-date_format(oh.ordh_ord_date, %s) as ordh_ord_date,
-oh.ordh_cust_no as ordh_cust_no,
+
+-- Date
+date_format(oh.ordh_ord_date, '%Y-%m-%d') as ordh_ord_date,
+
+-- Quantity and Price
 ordl_order_qty,
 ordl_item_rev,
 ordl_item_cost,
+ordl_total_rev,
+ordl_total_cost,
 ordl_total_profit
+
 from order_history_lines_clean ol
 left join order_history_hdrs_clean oh
 on ol.ordlf_ordh_key = oh.ordhf_key
