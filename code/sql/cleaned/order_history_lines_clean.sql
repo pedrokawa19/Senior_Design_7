@@ -15,6 +15,7 @@ SELECT
     STRIP_DIGITS(TRIM(ORDL_ITEM_NO)) AS ORDL_ITEM_NO_SUFF,
     TRIM(ORDL_ITEM_DESC) AS ORDL_ITEM_DESC,
     SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) AS ORDL_ITEM_CLASS_NAME,
+    SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 2),' ',-1) AS ORDL_ITEM_GAUGE,
 
 -- VMI AND SKID TAG
     ORDL_VMIT_TAG_NO,
@@ -61,4 +62,4 @@ AND SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) NOT IN ('ALMZ', 'ADJUSTMENT', 
 AND CAST(LEFT(TRIM(ORDL_ITEM_NO), 2) AS UNSIGNED) BETWEEN 12 AND 67;
 
 
-select * from order_history_lines_clean join vmitags_clean where ORDL_VMIT_TAG_NO = vmitf_key;
+select * from order_history_lines_clean join vmi_tags_clean where ORDL_VMIT_TAG_NO = vmitf_key;
