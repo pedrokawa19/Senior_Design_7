@@ -29,7 +29,7 @@ class HistoryFilterForm(forms.Form):
     item = forms.CharField(required=False, max_length=128)
     party = forms.CharField(required=False, max_length=128)
     page = forms.IntegerField(required=False, min_value=1, max_value=10)
-    sort_column = forms.IntegerField(required=False, min_value=0, max_value=10)
+    sort_column = forms.IntegerField(required=False, min_value=0, max_value=11)
     sort_direction = forms.ChoiceField(required=False, choices=(("asc", "Ascending"), ("desc", "Descending")))
     refresh = forms.ChoiceField(required=False, choices=(("0", "No"), ("1", "Yes")))
 

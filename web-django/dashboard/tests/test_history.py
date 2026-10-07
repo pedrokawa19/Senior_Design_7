@@ -233,8 +233,112 @@ class HistoryEndpointTests(TestCase):
     def test_invalid_sort_parameters_do_not_query_database(self, run):
         self.save_connection()
         for params in ({"sort_column": -1, "sort_direction": "asc"},
-                       {"sort_column": 10, "sort_direction": "asc"},
+                       {"sort_column": 12, "sort_direction": "asc"},
                        {"sort_column": 0}, {"sort_direction": "asc"},
                        {"sort_column": 0, "sort_direction": "DROP TABLE"}):
             self.assertEqual(self.client.get(reverse("sales-history"), params).status_code, 400)
+        run.assert_not_called()
+
+    def test_sales_date_formatting_preserves_nulls_and_original_frame(self):
+        for column in ("ordh_ord_date", "ORDH_ORD_DATE"):
+            for values in (
+                [date(2026, 10, 6), None],
+                [datetime(2026, 10, 6, 18, 25), pd.NaT],
+                [None, None],
+            ):
+                with self.subTest(column=column, values=values):
+                    frame = pd.DataFrame({column: values})
+                    original = frame.copy(deep=True)
+                    table = history._as_table(frame)
+                    self.assertEqual(table["rows"][0][0], "2026-10-06" if values[0] else None)
+                    self.assertIsNone(table["rows"][1][0])
+                    pd.testing.assert_frame_equal(frame, original)
+
+    def test_unfiltered_sales_query_has_no_unused_date_parameter(self):
+        sql, params = history._filtered_query(history.SALES_HISTORY_QUERY, "sales", {})
+        self.assertEqual(params, [])
+        self.assertNotIn("date_format(", sql.lower())
+        self.assertIn("oh.ordh_ord_date as ordh_ord_date", sql)
+        self.assertEqual(sql.count("%s"), len(params))
+
+    def test_truncated_sales_dates_are_rejected_without_mutating_source(self):
+        for column in ("ordh_ord_date", "ORDH_ORD_DATE"):
+            with self.subTest(column=column):
+                frame = pd.DataFrame({column: ["20", None]})
+                original = frame.copy(deep=True)
+                with self.assertRaises(history.InvalidHistoryDate):
+                    history._as_table(frame)
+                pd.testing.assert_frame_equal(frame, original)
+
+    @patch.object(history.pd, "read_sql")
+    @patch.object(history, "get_database_connection")
+    def test_invalid_sales_dates_report_safe_error_and_are_not_cached(self, connect, read):
+        self.save_connection()
+        read.return_value = pd.DataFrame({"ordh_ord_date": ["private-invalid-date"]})
+        url = reverse("sales-history")
+        with self.assertLogs("dashboard.views.api", level="WARNING") as logs:
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("returns DATE values", response.json()["detail"])
+        self.assertNotIn("private-invalid-date", response.json()["detail"])
+        self.assertIn("invalid order-date data", " ".join(logs.output))
+        self.assertNotIn("private-invalid-date", " ".join(logs.output))
+        connect.return_value.close.assert_called_once()
+
+        read.return_value = pd.DataFrame({"ordh_ord_date": [date(2026, 10, 6), None]})
+        recovered = self.client.get(url)
+        self.assertEqual(recovered.status_code, 200)
+        self.assertEqual(recovered.json()["rows"], [["2026-10-06"], [None]])
+        self.assertEqual(read.call_count, 2)
+
+    @patch.object(history, "_run_history_query")
+    def test_query_failure_logs_type_without_private_details(self, run):
+        self.save_connection()
+        run.side_effect = RuntimeError("private database details")
+        with self.assertLogs("dashboard.views.api", level="WARNING") as logs:
+            response = self.client.get(reverse("sales-history"))
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("RuntimeError", " ".join(logs.output))
+        self.assertNotIn("private database details", " ".join(logs.output))
+        self.assertEqual(response.json()["detail"], "Unable to load sales history.")
+
+    @patch.object(history.pd, "read_sql")
+    @patch.object(history, "get_database_connection")
+    def test_sales_load_formats_dates_and_sorts_last_columns_across_pages(self, connect, read):
+        self.save_connection()
+        columns = [
+            "ordlf_key", "ordl_vmit_tag_no", "ordh_cust_no", "ordl_item_no",
+            "ordl_item_desc", "ordh_ord_date", "ordl_order_qty", "ordl_item_rev",
+            "ordl_item_cost", "ordl_total_rev", "ordl_total_cost", "ordl_total_profit",
+        ]
+        read.return_value = pd.DataFrame([
+            [n, "TAG", "CUSTOMER", "ITEM", "Steel", date(2026, 10, 6), 1, 2, 1, 2, n, n]
+            for n in range(205, 0, -1)
+        ], columns=columns)
+        url = reverse("sales-history")
+        first = self.client.get(url)
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.json()["rows"][0][5], "2026-10-06")
+        self.assertEqual(read.call_args.kwargs["params"], [])
+        for column in (10, 11):
+            for direction, expected in (("asc", 101), ("desc", 105)):
+                with self.subTest(column=column, direction=direction):
+                    response = self.client.get(url, {
+                        "sort_column": column, "sort_direction": direction, "page": 2,
+                    })
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(response.json()["rows"][0][column], expected)
+        restored = self.client.get(url).json()
+        self.assertEqual(restored["rows"], first.json()["rows"])
+        read.assert_called_once()
+        connect.return_value.close.assert_called_once()
+
+    @patch.object(history, "_run_history_query")
+    def test_purchase_sort_rejects_columns_beyond_current_query(self, run):
+        self.save_connection()
+        for column in (9, 10, 11):
+            response = self.client.get(reverse("purchase-history"), {
+                "sort_column": column, "sort_direction": "asc",
+            })
+            self.assertEqual(response.status_code, 400)
         run.assert_not_called()
