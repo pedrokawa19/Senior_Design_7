@@ -1,3 +1,7 @@
+# Corresponding dashboard code: web-django/dashboard/services/profitability.py:7
+# Corresponding dashboard caller: web-django/dashboard/views/api.py:161
+# Last updated: 2026-10-06
+
 # Imports
 import os
 import pandas as pd

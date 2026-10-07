@@ -23,6 +23,11 @@ class InvalidHistorySort(ValueError):
 class HistoryQueryNotConfigured(Exception):
     """Raised when a report's SQL has not been written yet."""
 
+
+class InvalidHistoryDate(ValueError):
+    """The database returned an order date that cannot be displayed."""
+
+
 PURCHASE_HISTORY_QUERY = """
 select
 -- IDs
@@ -64,7 +69,7 @@ ordl_item_no,
 ordl_item_desc,
 
 -- Date
-date_format(oh.ordh_ord_date, '%Y-%m-%d') as ordh_ord_date,
+oh.ordh_ord_date as ordh_ord_date,
 
 -- Quantity and Price
 ordl_order_qty,
@@ -78,7 +83,7 @@ from order_history_lines_clean ol
 left join order_history_hdrs_clean oh
 on ol.ordlf_ordh_key = oh.ordhf_key
 {where}
-order by ordh_ord_date desc, ol.ordlf_key desc
+order by oh.ordh_ord_date desc, ol.ordlf_key desc
 limit 1000;
 """
 
@@ -99,7 +104,7 @@ def _filtered_query(query, report, filters):
         ("oh.ordh_ord_date", "ol.ordl_item_no", "ol.ordl_item_desc", "oh.ordh_cust_name")
     )
     clauses = []
-    params = ["%Y-%m-%d"] if report == "sales" else []
+    params = []
     for name, operator in (("start_date", ">="), ("end_date", "<=")):
         if filters.get(name):
             clauses.append(f"{date_column} {operator} %s")
@@ -116,7 +121,7 @@ def _filtered_query(query, report, filters):
 
 def _get_history(settings, report, query, *, user_id, connection_version,
                  filters, page=1, refresh=False, sort_column=None, sort_direction=""):
-    column_count = 11 if report == "purchases" else 10
+    column_count = 9 if report == "purchases" else 12
     if sort_column is not None and not 0 <= sort_column < column_count:
         raise InvalidHistorySort("Choose a valid column for this report.")
     if not query.strip():
@@ -173,7 +178,19 @@ def _run_history_query(settings, query, params):
 
 
 def _as_table(frame):
-    frame = frame.head(MAX_ROWS)
+    frame = frame.head(MAX_ROWS).copy()
+    # Format the sales date for display after SQL filtering and ordering.
+    # Missing dates from the LEFT JOIN remain JSON null.
+    for column in frame.columns:
+        if str(column).lower() == "ordh_ord_date":
+            try:
+                frame[column] = pd.to_datetime(frame[column]).dt.strftime("%Y-%m-%d")
+            except (ValueError, OverflowError) as error:
+                raise InvalidHistoryDate(
+                    "Sales history contains invalid order dates. Ask the database "
+                    "administrator to verify that order_history_hdrs_clean.ORDH_ORD_DATE "
+                    "returns DATE values, then refresh."
+                ) from error
     # to_json handles dates, decimals, and missing values that JsonResponse cannot.
     payload = json.loads(frame.to_json(orient="split", date_format="iso"))
     return {

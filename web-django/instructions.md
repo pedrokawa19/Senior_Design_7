@@ -137,6 +137,17 @@ application server, outside static files. Entries can be evicted before one
 hour if the cache reaches its configured capacity. This improves repeat visits;
 it does not eliminate the cost of cleaning, joins, or sorting on a cache miss.
 
+Sales History requires `order_history_hdrs_clean.ORDH_ORD_DATE` to return
+`DATE` values, not truncated strings. If loading reports invalid order dates,
+an authorized database administrator should review and apply the complete
+view definition in `../code/sql/cleaned/order_history_hdrs_clean.sql`. The outer
+`CAST(... AS DATE)` preserves the column's date type after `NULLIF` removes
+the `1900-01-01` sentinel. Verify the live column type, then click Refresh.
+Restarting Django does not deploy SQL view changes. Do not coerce malformed
+dates to blanks: doing so hides the problem and leaves filtering and ordering
+incorrect. History failure logs record an error category or exception type,
+never raw exception messages or returned records.
+
 Focused checks (synthetic data; no client database needed):
 
 ```bash

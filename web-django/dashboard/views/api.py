@@ -212,8 +212,13 @@ def _history_response(request, loader, label):
         return JsonResponse({"detail": str(error)}, status=400)
     except HistoryQueryNotConfigured as error:
         return JsonResponse({"detail": str(error)}, status=501)
-    except Exception:
-        logger.warning("%s query failed for user id %s", label, request.user.id)
+    except history.InvalidHistoryDate as error:
+        logger.warning("%s query failed for user id %s: invalid order-date data",
+                       label, request.user.id)
+        return JsonResponse({"detail": str(error)}, status=503)
+    except Exception as error:
+        logger.warning("%s query failed for user id %s (exception type: %s)",
+                       label, request.user.id, type(error).__name__)
         return JsonResponse({"detail": f"Unable to load {label}."}, status=503)
 
 
