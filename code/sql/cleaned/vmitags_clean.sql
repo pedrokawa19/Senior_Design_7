@@ -2,7 +2,7 @@ create or replace view vmitags_clean as
 select
     -- Item numbers and order references
     vmitf_key,
-    cast(substring(vmit_item_no, 1, 2) as unsigned) as vmit_item_class,
+    cast(substring(vmit_item_no, 1, 2) as unsigned) as vmit_item_class_no,
     nullif(trim(vmit_item_no), '') as vmit_item_no,
     STRIP_DIGITS(TRIM(vmit_item_no)) AS VMIT_ITEM_NO_SUFF,
     nullif(trim(vmit_tag_desc), '') as vmit_tag_desc,
@@ -12,7 +12,7 @@ select
     cast(vmit_poln_po_num as unsigned) as vmit_poln_po_no,
     cast(vmit_poln_sub_po_no as unsigned) as vmit_poln_sub_po_no,
     cast(vmit_poln_seq_no as unsigned) as vmit_poln_seq_no,
-    cast(vmit_sales_order as unsigned) as vmit_sales_order,
+    cast(vmit_sales_order as unsigned) as vmit_ordl_order_no,
 
     -- Dates
     nullif(cast(vmit_po_date as date), date '1900-01-01') as vmit_po_date,
@@ -39,22 +39,32 @@ select
     cast(vmit_tensile as decimal(10, 3)) as vmit_tensile,
     cast(vmit_elongation as decimal(10, 3)) as vmit_elongation,
     nullif(trim(vmit_defect), '') as vmit_defect
+
 from vmi_tags
-where vmit_item_no not in (0,1)
-and vmit_qty_status not in (9)
-and STRIP_DIGITS(TRIM(vmit_item_no)) not in ('X', 'TOLL', 'TUBE', 'PLATE', 
-                                             'DECK', 'BEAM', 'FLPLATE', 'EQUIP', 
-                                             'CHAN', 'REJECT', 'SLIT', 'FP', 'SHEET', 
-                                             'PIPE', 'M', 'T', 'ANG', 'BAR', 'DROP');
+
+where 
+    vmit_item_no not in (0,1)
+
+-- Status Filter
+    and vmit_qty_status not in (9)
+
+-- Class Filter
+    and cast(substring(vmit_item_no, 1, 2) as unsigned) between 12 and 67
+
+-- Type Filter
+    and STRIP_DIGITS(TRIM(vmit_item_no)) not in ('X', 'TOLL', 'TUBE', 'PLATE', 
+                                                'DECK', 'BEAM', 'FLPLATE', 'EQUIP', 
+                                                'CHAN', 'REJECT', 'SLIT', 'FP', 'SHEET', 
+                                                'PIPE', 'M', 'T', 'ANG', 'BAR', 'DROP')
+
+-- Description Filter
+    and SUBSTRING_INDEX(TRIM(vmit_tag_desc), ' ', 1) not in ('BOND', '20', '24', '5', '4', 
+                                                            'PTDGALV', 'PTDGVLM', 'PTD', 'PTDGLVM', 'PTDCR',
+                                                            'ALMZ', 'MISCELLANEOUS', 'GVLM', 'EG', 'GALVEMB');
 
 
 select distinct vmit_item_class_name, count(*) from vmitags_clean
 group by vmit_item_class_name order by count(*) desc;
-
-
--- select max(vmit_po_date) as max_po_date FROM vmitags_clean;
--- select min(vmit_po_date) as min_po_date FROM vmitags_clean;
-
 
 
 select * from vmitags_clean;

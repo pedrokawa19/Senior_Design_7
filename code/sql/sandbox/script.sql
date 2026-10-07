@@ -205,3 +205,10 @@ select poln_vmi_tag_no from po_history_lines_clean where poln_po_no = 3879;
 
 
 select * from vmitags_clean where vmitf_key in (select concat('00', poln_vmi_tag_no) from po_history_lines_clean where poln_po_no = 3879);
+
+
+
+
+select * from order_history_lines_clean;
+
+

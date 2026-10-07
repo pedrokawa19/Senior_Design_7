@@ -1,5 +1,5 @@
-# Corresponding dashboard code: web-django/dashboard/services/profitability.py:7
-# Corresponding dashboard caller: web-django/dashboard/views/api.py:161
+# Dashboard code: web-django/dashboard/services/profitability.py:7
+# Dashboard caller: web-django/dashboard/views/api.py:161
 # Last updated: 2026-10-06
 
 # Imports

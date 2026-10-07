@@ -62,30 +62,33 @@
       <div class="card-heading">
         <div>
           <p class="eyebrow">Operations</p>
-          <h2>History</h2>
+          <h2>{% if is_inventory %}Inventory{% else %}History{% endif %}</h2>
           <p class="eyebrow" id="last-refreshed" style="margin-top: 12px" aria-live="polite">Last Refreshed · Not yet loaded</p>
         </div>
       </div>
 
+      {% if not is_inventory %}
       <nav class="subtab-nav" aria-label="History sections">
         <a class="subtab {% if history_view == 'purchases' %}active{% endif %}" href="{% url 'history-purchases' %}">Purchase History</a>
         <a class="subtab {% if history_view == 'sales' %}active{% endif %}" href="{% url 'history-sales' %}">Sales History</a>
       </nav>
-
+      {% endif %}
       <form id="history-filters" class="date-controls">
+        {% if not is_inventory %}
         <label>From ({% if history_view == 'purchases' %}delivery{% else %}order{% endif %} date)<input type="date" name="start_date" /></label>
         <label>To<input type="date" name="end_date" /></label>
         <label>Item number or description<input name="item" maxlength="128" type="search" /></label>
         <label>{% if history_view == 'purchases' %}Vendor{% else %}Customer{% endif %}<input name="party" maxlength="128" type="search" /></label>
         <button class="secondary-button" type="submit">Apply filters</button>
         <button class="secondary-button" type="reset">Clear filters</button>
+        {% endif %}
         <button class="secondary-button" type="button" id="refresh-history">Refresh</button>
       </form>
       <p class="error" id="history-error" role="alert"></p>
       <div id="history-content" aria-live="polite">
         <p class="info">Loading {{ page_title|lower }}...</p>
       </div>
-      <nav class="history-pagination" aria-label="History pages">
+      <nav class="history-pagination" aria-label="{{ page_title }} pages">
         <button class="secondary-button" id="first-page" type="button" aria-label="First page" title="First page" disabled><span aria-hidden="true">«</span></button>
         <button class="secondary-button" id="previous-page" type="button" aria-label="Previous page" title="Previous page" disabled><span aria-hidden="true">‹</span></button>
         <input id="page-number" type="number" min="1" max="1" step="1" value="1" aria-label="Page number" aria-describedby="page-status" disabled />
@@ -99,6 +102,7 @@
   <script>
     const historyUrl = "{{ api_url }}";
     const historyContent = document.querySelector("#history-content");
+    const reportLabel = "{{ page_title|default:'History'|escapejs }}".toLowerCase();
 
     function escapeHtml(value) {
       return String(value === null || value === undefined ? "" : value).replace(
@@ -140,7 +144,7 @@
       firstButton.disabled = lastButton.disabled = pageInput.disabled = true;
       previousButton.disabled = nextButton.disabled = refreshButton.disabled = true;
       historyContent.setAttribute("aria-busy", "true");
-      historyContent.innerHTML = '<p class="info">Loading history...</p>';
+      historyContent.innerHTML = `<p class="info">Loading ${escapeHtml(reportLabel)}...</p>`;
       document.querySelector("#page-status").textContent = "";
       refreshedContent.textContent = "Last Refreshed · Loading...";
       errorContent.textContent = "";
@@ -156,7 +160,7 @@
           credentials: "same-origin", cache: "no-store", signal: controller.signal,
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.detail || "Unable to load history.");
+        if (!response.ok) throw new Error(data.detail || `Unable to load ${reportLabel}.`);
         if (thisRequest !== requestNumber) return;
         currentPage = data.page;
         pageCount = data.page_count;
@@ -167,17 +171,18 @@
         refreshedContent.textContent = "Last Refreshed · " +
           new Date(data.refreshed_at).toLocaleString(undefined, dateOptions);
         const headings = data.columns.map((column, index) => {
+          const label = data.column_labels ? data.column_labels[index] : column;
           const active = sortColumn === index;
           const order = active ? (sortDirection === "asc" ? "ascending" : "descending") : "none";
           const icon = active ? (sortDirection === "asc" ? "↑" : "↓") : "↕";
           const nextAction = !active ? "Sort ascending" : sortDirection === "asc" ? "Sort descending" : "Restore original order";
-          return `<th scope="col" aria-sort="${order}"><button type="button" class="history-sort" data-sort-column="${index}" title="${nextAction}" aria-label="${escapeHtml(column)}: ${nextAction}">${escapeHtml(column)} <span aria-hidden="true">${icon}</span></button></th>`;
+          return `<th scope="col" aria-sort="${order}"><button type="button" class="history-sort" data-sort-column="${index}" title="${nextAction}" aria-label="${escapeHtml(label)}: ${nextAction}">${escapeHtml(label)} <span aria-hidden="true">${icon}</span></button></th>`;
         }).join("");
         const rows = data.rows.map(row =>
           `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
         historyContent.innerHTML = rows
           ? `<div class="table-scroll"><table class="data-table"><thead><tr>${headings}</tr></thead><tbody>${rows}</tbody></table></div>`
-          : '<p class="info">No history matches these filters.</p>';
+          : `<p class="info">${data.column_labels ? "No current inventory records." : "No history matches these filters."}</p>`;
         const start = data.total_rows ? (currentPage - 1) * data.page_size + 1 : 0;
         const end = data.total_rows ? start + data.row_count - 1 : 0;
         historyContent.innerHTML += `<p class="row-count">Showing ${start}–${end} of ${data.total_rows} records${data.total_rows === data.max_rows ? " (latest 1,000 limit reached)" : ""}.</p>`;
@@ -188,13 +193,15 @@
         firstButton.disabled = previousButton.disabled = currentPage <= 1;
         lastButton.disabled = nextButton.disabled = currentPage >= pageCount;
         // Revalidate when this snapshot expires, including while the page stays open.
-        const remaining = new Date(data.expires_at).getTime() - Date.now();
-        refreshTimer = setTimeout(() => loadHistory(currentPage), Math.max(1000, remaining + 250));
+        if (data.expires_at) {
+          const remaining = new Date(data.expires_at).getTime() - Date.now();
+          refreshTimer = setTimeout(() => loadHistory(currentPage), Math.max(1000, remaining + 250));
+        }
       } catch (error) {
         if (thisRequest !== requestNumber || error.name === "AbortError") return;
         historyContent.innerHTML = "";
         refreshedContent.textContent = "Last Refreshed · Unavailable";
-        errorContent.textContent = error.message || "Unable to load history. Try Refresh.";
+        errorContent.textContent = error.message || `Unable to load ${reportLabel}. Try Refresh.`;
       } finally {
         if (thisRequest === requestNumber) {
           refreshButton.disabled = false;

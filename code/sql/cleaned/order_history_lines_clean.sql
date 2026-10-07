@@ -18,7 +18,7 @@ SELECT
     SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) AS ORDL_ITEM_CLASS_NAME,
     SUBSTRING_INDEX(SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 2),' ',-1) AS ORDL_ITEM_GAUGE,
 
--- VMI
+-- Tag Number
     ORDL_VMIT_TAG_NO,
 
     -- QUANTITY, REVENUE, COST, AND PROFIT
@@ -34,33 +34,36 @@ SELECT
     CAST(ORDL_PRICE_CD AS UNSIGNED) AS ORDL_PRICE_CD
 
 FROM order_history_lines
-WHERE TRIM(ORDL_ITEM_NO) NOT IN (
-    'C', 'F', 'EXPORT', '1', 'x', 'X',
-    'S', 'D', 'TAXABLE', 'NON-TAXABLE', 'T'
-)
-AND ORDL_ITEM_DESC NOT IN (
-    '******* CREDIT MEMO ********',
-    '____________________________'
-)
-AND STRIP_DIGITS(TRIM(ORDL_ITEM_NO)) NOT IN (
-    'DROP', 'TOLL', 'TUBE', 'SCRAP', 'REJECT', 'PIPE', 'PLATE',
-    'M', 'FP', 'FLPLATE', 'DECK', 'CHAN', 'BEAM', 'BAR', 'ANG'
-)
-AND SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) NOT IN ('ALMZ', 'ADJUSTMENT', 'ALZM', 
-                                 'MISCELLANEOUS', 'PTD', 'BOND', 'PL', 
-                                 'FLPL', 'AZ50', 'EG', 'GA/GI', 
-                                 'SCRAP', 'GF', 'CLEAT', 'POTP', 
-                                 'POTLDRY', 'SEC', '4', '5','', 'GVLM', 'GLVM', 'HRFL', 'CRFH', 
-                                 'GVLM', 'PTDGALV', 'PTDCR', 'PTDGVLM', 'PTDHR', 'PTDGV', '36"',
-                                 '20GA', '24GA', 'EmbGALV', '7GA', '26GA', 'TRTGALV', '18GA', 'GALVEMB', 
-                                 '48"', 'G40', '.030', 'GALV.072', 'GALV.057', 'GALV.051'
-)
+
+
+WHERE TRIM(ORDL_ITEM_NO) NOT IN ('C', 'F', 'EXPORT', '1', 'x', 'X',
+                                 'S', 'D', 'TAXABLE', 'NON-TAXABLE', 'T')
+
+AND ORDL_ITEM_DESC NOT IN ('******* CREDIT MEMO ********', 
+                           '____________________________')
+
+AND STRIP_DIGITS(TRIM(ORDL_ITEM_NO)) NOT IN ('DROP', 'TOLL', 'TUBE', 'SCRAP', 'REJECT', 
+                                             'PIPE', 'PLATE', 'M', 'FP', 'FLPLATE', 
+                                             'DECK', 'CHAN', 'BEAM', 'BAR', 'ANG')
+
+AND SUBSTRING_INDEX(TRIM(ORDL_ITEM_DESC), ' ', 1) NOT IN ('ALMZ', 'ADJUSTMENT', 'ALZM', 'MISCELLANEOUS', 
+                                                          'PTD', 'BOND', 'PL', 'FLPL', 'AZ50', 'EG', 'GA/GI', 
+                                                          'SCRAP', 'GF', 'CLEAT', 'POTP', 
+                                                          'POTLDRY', 'SEC', '4', '5','', 'GVLM', 'GLVM', 'HRFL', 'CRFH', 
+                                                          'GVLM', 'PTDGALV', 'PTDCR', 'PTDGVLM', 'PTDHR', 'PTDGV', '36"',
+                                                          '20GA', '24GA', 'EmbGALV', '7GA', '26GA', 'TRTGALV', '18GA', 'GALVEMB', 
+                                                          '48"', 'G40', '.030', 'GALV.072', 'GALV.057', 'GALV.051')
+
 AND CAST(LEFT(TRIM(ORDL_ITEM_NO), 2) AS UNSIGNED) BETWEEN 12 AND 67
-AND ORDL_ORDER_QTY > 0
-AND ORDL_VMIT_TAG_NO IS NOT NULL;
+AND ORDL_ORDER_QTY > 0;
+
+-- AND ORDL_VMIT_TAG_NO IS NOT NULL;
 
 
 select * from order_history_lines_clean join vmi_tags_clean where ORDL_VMIT_TAG_NO = vmitf_key;
 
 
-Select * from order_history_lines_clean;
+select * from vmitags_clean where vmitf_key in (Select ordl_vmit_tag_no from order_history_lines_clean where ordl_total_rev < 0);
+
+
+select * from order_history_lines_clean where ORDL_VMIT_TAG_NO is null

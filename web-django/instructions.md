@@ -158,6 +158,38 @@ node --test dashboard/tests/history_ui.test.cjs
 The JavaScript checks exercise the template script with a simulated DOM; they
 do not replace a visual browser check.
 
+## Current inventory
+
+The Inventory tab reads the existing `current_inventory` MySQL view using the
+signed-in user's saved connection from Profile. The application never creates
+or replaces that view. An authorized database administrator must deploy the
+definition in `../code/sql/src/current_inventory` beforehand; it selects quantity
+statuses 1 and 2 from `vmitags_clean`.
+
+All 23 source fields are displayed with readable headings. Dates are ISO dates,
+missing values display as blank cells, and quantities and costs preserve their
+source precision without assuming units or deriving totals. Status codes retain
+their database values.
+
+Inventory starts in newest PO-date order with tag key as a tie-breaker. It shows
+50 rows per page with no 1,000-record cap. Sorting is performed in MySQL across
+the entire view, with nulls last; click a heading to cycle ascending, descending,
+then newest-first. Sorting returns to page 1.
+
+Each page change, sort, and Refresh reads fresh data; inventory does not use
+History's one-hour snapshot cache or automatic-refresh timer. Last Refreshed
+shows the time that page was fetched in the browser's local timezone. Counts and
+pages can change as live inventory changes. Use Refresh to update an open page.
+An unavailable or incompatible view, connection failure, or missing connection
+is reported explicitly rather than appearing as empty inventory.
+
+Focused checks (synthetic data; no client database needed):
+
+```bash
+python manage.py test dashboard.tests.test_inventory dashboard.tests.test_history dashboard.tests.test_pages
+node --test dashboard/tests/history_ui.test.cjs
+```
+
 ## Auction bid-list screening
 
 The Auction tab accepts `.xlsx` and UTF-8, comma-separated `.csv` files. Install

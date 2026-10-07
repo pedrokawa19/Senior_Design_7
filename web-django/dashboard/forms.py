@@ -41,3 +41,18 @@ class HistoryFilterForm(forms.Form):
         if start and end and start > end:
             raise forms.ValidationError("Start date must be on or before end date.")
         return data
+
+
+class InventoryTableForm(forms.Form):
+    page = forms.IntegerField(required=False, min_value=1)
+    sort_column = forms.IntegerField(required=False, min_value=0, max_value=22)
+    sort_direction = forms.ChoiceField(
+        required=False, choices=(("asc", "Ascending"), ("desc", "Descending"))
+    )
+    refresh = forms.ChoiceField(required=False, choices=(("0", "No"), ("1", "Yes")))
+
+    def clean(self):
+        data = super().clean()
+        if (data.get("sort_column") is not None) != bool(data.get("sort_direction")):
+            raise forms.ValidationError("Choose both a sort column and direction.")
+        return data

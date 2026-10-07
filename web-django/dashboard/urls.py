@@ -27,4 +27,5 @@ urlpatterns = [
     path("api/index-performance", api.index_performance, name="index-performance"),
     path("api/history/purchases", api.purchase_history, name="purchase-history"),
     path("api/history/sales", api.sales_history, name="sales-history"),
+    path("api/inventory", api.current_inventory, name="current-inventory"),
 ]

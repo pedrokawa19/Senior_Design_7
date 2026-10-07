@@ -10,6 +10,8 @@ import logging
 from datetime import date
 from functools import wraps
 
+import mysql.connector
+
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -19,9 +21,9 @@ from ..credentials import (
     CredentialStorageUnavailable,
     public_connection,
 )
-from ..forms import ConnectionForm, HistoryFilterForm
+from ..forms import ConnectionForm, HistoryFilterForm, InventoryTableForm
 from ..models import SavedConnection
-from ..services import connections, database, history, market, profitability
+from ..services import connections, database, history, inventory, market, profitability
 from ..services.history import HistoryQueryNotConfigured, InvalidHistorySort
 
 logger = logging.getLogger(__name__)
@@ -232,3 +234,40 @@ def purchase_history(request):
 @require_GET
 def sales_history(request):
     return _history_response(request, history.get_sales_history, "sales history")
+
+
+@api_login_required
+@require_GET
+def current_inventory(request):
+    form = InventoryTableForm(request.GET)
+    if not form.is_valid():
+        return JsonResponse({"detail": _first_form_error(form)}, status=400)
+    try:
+        saved_settings = connections.require_connection(request.user)
+    except ConnectionNotConfigured as error:
+        return JsonResponse({"detail": str(error)}, status=409)
+    except CredentialStorageUnavailable as error:
+        return JsonResponse({"detail": str(error)}, status=503)
+
+    try:
+        data = form.cleaned_data
+        response = JsonResponse(inventory.get_inventory(
+            saved_settings, page=data["page"] or 1,
+            sort_column=data["sort_column"], sort_direction=data["sort_direction"],
+        ))
+        response["Cache-Control"] = "no-store"
+        return response
+    except inventory.InvalidInventorySchema as error:
+        logger.warning("Inventory query failed for user id %s: incompatible view",
+                       request.user.id)
+        return JsonResponse({"detail": str(error)}, status=503)
+    except mysql.connector.Error as error:
+        logger.warning("Inventory query failed for user id %s (exception type: %s)",
+                       request.user.id, type(error).__name__)
+        detail = (
+            "The current_inventory view is unavailable. Ask the database administrator "
+            "to verify that it exists in the selected database."
+            if error.errno == 1146 else
+            "Unable to load inventory. Check your saved connection in Profile and try Refresh."
+        )
+        return JsonResponse({"detail": detail}, status=503)

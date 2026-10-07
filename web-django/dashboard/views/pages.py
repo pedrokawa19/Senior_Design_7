@@ -32,7 +32,12 @@ def _placeholder(request, tab, title):
 
 @login_required
 def inventory(request):
-    return _placeholder(request, "inventory", "Inventory")
+    return render(request, "history.html", {
+        "active_tab": "inventory",
+        "is_inventory": True,
+        "page_title": "Inventory",
+        "api_url": reverse("current-inventory"),
+    })
 
 
 @login_required

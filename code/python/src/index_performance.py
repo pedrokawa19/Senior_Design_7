@@ -1,6 +1,6 @@
-# Corresponding dashboard code: web-django/dashboard/services/market.py:23
-# Corresponding dashboard caller: web-django/dashboard/views/api.py:180
-# Last updated: 2026-10-06
+# Dashboard code: web-django/dashboard/services/market.py:23
+# Dashboard caller: web-django/dashboard/views/api.py:180
+#  Last updated: 2026-10-06
 
 import datetime as dt
 

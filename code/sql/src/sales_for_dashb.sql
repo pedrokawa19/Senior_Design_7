@@ -1,5 +1,5 @@
--- Corresponding dashboard code: web-django/dashboard/services/history.py:53
--- Corresponding dashboard caller: web-django/dashboard/views/api.py:229
+-- Dashboard code: web-django/dashboard/services/history.py:53
+-- Dashboard caller: web-django/dashboard/views/api.py:229
 -- Last updated: 2026-10-06
 
 select 

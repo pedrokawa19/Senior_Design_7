@@ -1,4 +1,4 @@
-"""Rendering of the dashboard, navigation, profile, history, and placeholders."""
+"""Rendering of the dashboard, navigation, profile, history, inventory, and placeholders."""
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
@@ -47,7 +47,6 @@ class PageTests(TestCase):
 
     def test_placeholder_pages_render_their_card(self):
         expected = {
-            "inventory": "This is the Inventory page",
             "model": "This is the Model page",
         }
         for page, message in expected.items():
@@ -55,6 +54,19 @@ class PageTests(TestCase):
                 response = self.client.get(reverse(page))
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, message)
+
+    def test_inventory_renders_the_report_without_history_controls(self):
+        response = self.client.get(reverse("inventory"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<h2>Inventory</h2>")
+        self.assertContains(response, reverse("current-inventory"))
+        self.assertContains(response, "Last Refreshed")
+        self.assertContains(response, 'id="refresh-history"')
+        self.assertContains(response, 'aria-label="Inventory pages"')
+        self.assertNotContains(response, "This is the Inventory page")
+        self.assertNotContains(response, 'aria-label="History sections"')
+        self.assertNotContains(response, 'name="party"')
+        self.assertNotContains(response, 'name="start_date"')
 
     def test_history_opens_on_purchase_history(self):
         response = self.client.get(reverse("history"))

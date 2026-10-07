@@ -1,10 +1,10 @@
--- Corresponding dashboard code: web-django/dashboard/services/profitability.py:7
--- Corresponding dashboard caller: web-django/dashboard/views/api.py:161
+-- Dashboard code: web-django/dashboard/services/profitability.py:7
+-- Dashboard caller: web-django/dashboard/views/api.py:161
 -- Last updated: 2026-10-06
 
 create or replace view ytd_profit_per_class as
 select 
-item_class_name,
+    item_class_name,
     sum(item_ytd_profit) as ytd_profit_per_class,
     round(sum(item_ytd_profit) / (
         select sum(item_ytd_profit)

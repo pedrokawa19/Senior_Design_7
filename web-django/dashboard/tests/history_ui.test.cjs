@@ -9,7 +9,8 @@ const script = fs.readFileSync(path.join(__dirname, '../../templates/history.htm
   .match(/<script>([\s\S]*?)<\/script>/)[1];
 const settle = () => new Promise(resolve => setImmediate(resolve));
 
-function setup() {
+function setup(inventory = false) {
+  const pageSize = inventory ? 50 : 100;
   const nodes = new Map();
   const node = selector => {
     if (!nodes.has(selector)) nodes.set(selector, {
@@ -29,17 +30,22 @@ function setup() {
       requests.push({ url, options });
       if (state.pending) return new Promise(() => {});
       const query = new URLSearchParams(url.split('?')[1]);
-      const page = Math.min(Number(query.get('page')), Math.max(1, Math.ceil(state.total / 100)));
-      const count = Math.min(100, Math.max(0, state.total - (page - 1) * 100));
+      const page = Math.min(Number(query.get('page')), Math.max(1, Math.ceil(state.total / pageSize)));
+      const count = Math.min(pageSize, Math.max(0, state.total - (page - 1) * pageSize));
       return { ok: !state.fail, json: async () => state.fail ? { detail: 'Synthetic failure' } : {
-        page, page_count: Math.max(1, Math.ceil(state.total / 100)), page_size: 100,
+        page, page_count: Math.max(1, Math.ceil(state.total / pageSize)), page_size: pageSize,
         total_rows: state.total, row_count: count, max_rows: 1000,
         columns: ['ID'], rows: Array.from({ length: count }, (_, i) => [i === 0 ? '<script>unsafe</script>' : i]),
-        refreshed_at: new Date().toISOString(), expires_at: new Date(Date.now() + 3600000).toISOString(),
+        column_labels: inventory ? ['Tag key'] : undefined,
+        refreshed_at: new Date().toISOString(),
+        expires_at: inventory ? null : new Date(Date.now() + 3600000).toISOString(),
+        ...(inventory ? { max_rows: undefined } : {}),
       } };
     },
   };
-  vm.runInNewContext(script, context);
+  vm.runInNewContext(script.replace(
+    "{{ page_title|default:'History'|escapejs }}", inventory ? 'Inventory' : 'History',
+  ), context);
   return { node, requests, timers, state };
 }
 
@@ -160,4 +166,33 @@ test('headers cycle ascending, descending, original and retain sorting across pa
   await clickColumn(1);
   assert.equal(query().get('sort_column'), '1');
   assert.equal(query().get('sort_direction'), 'asc');
+});
+
+test('inventory uses readable headings, full pagination and explicit refresh without a snapshot timer', async () => {
+  const { node, requests, timers, state } = setup(true);
+  assert.match(node('#history-content').innerHTML, /Loading inventory/);
+  await settle();
+  assert.match(node('#history-content').innerHTML, /Tag key/);
+  assert.match(node('#history-content').innerHTML, /Showing 1–50 of 1000/);
+  assert.equal(node('#page-status').textContent, 'of 20');
+  assert.equal(node('#page-number').max, '20');
+  await node('#next-page').onclick();
+  assert.match(node('#history-content').innerHTML, /Showing 51–100 of 1000/);
+  assert.doesNotMatch(node('#history-content').innerHTML, /limit reached/);
+  assert.equal(timers.length, 0);
+  state.total = 1201;
+  await node('#last-page').onclick();
+  await node('#last-page').onclick();
+  assert.match(requests.at(-1).url, /page=25/);
+  assert.equal(node('#page-status').textContent, 'of 25');
+  assert.equal(node('#page-number').max, '25');
+  assert.match(node('#history-content').innerHTML, /Showing 1201–1201 of 1201/);
+  state.total = 0;
+  await node('#refresh-history').onclick();
+  assert.match(node('#history-content').innerHTML, /No current inventory records/);
+  assert.match(requests.at(-1).url, /refresh=1/);
+  state.fail = true;
+  await node('#refresh-history').onclick();
+  assert.equal(node('#history-error').textContent, 'Synthetic failure');
+  assert.equal(node('#refresh-history').disabled, false);
 });
