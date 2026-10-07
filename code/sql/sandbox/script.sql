@@ -186,3 +186,22 @@ LEFT JOIN (
     ON i.item_number = t.item_number
 
 ORDER BY i.item_number;
+
+
+
+select * from vmitags_clean;
+
+
+
+select * from vmitags_clean where vmit_qty_status = 4;
+
+
+select * from po_history_lines_clean;
+
+select * from order_history_lines_clean;
+
+
+select poln_vmi_tag_no from po_history_lines_clean where poln_po_no = 3879;
+
+
+select * from vmitags_clean where vmitf_key in (select concat('00', poln_vmi_tag_no) from po_history_lines_clean where poln_po_no = 3879);

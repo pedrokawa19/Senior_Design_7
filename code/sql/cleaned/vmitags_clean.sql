@@ -4,6 +4,9 @@ select
     vmitf_key,
     cast(substring(vmit_item_no, 1, 2) as unsigned) as vmit_item_class,
     nullif(trim(vmit_item_no), '') as vmit_item_no,
+    STRIP_DIGITS(TRIM(vmit_item_no)) AS VMIT_ITEM_NO_SUFF,
+    nullif(trim(vmit_tag_desc), '') as vmit_tag_desc,
+    SUBSTRING_INDEX(TRIM(vmit_tag_desc), ' ', 1) AS VMIT_ITEM_CLASS_NAME,
     vmit_from_vmi_tag_no as vmit_parent_tag_no,
     vmit_org_vmi_tag_no as vmit_org_tag_no,
     cast(vmit_poln_po_num as unsigned) as vmit_poln_po_no,
@@ -23,7 +26,6 @@ select
     cast(vmit_qty_status as unsigned) as vmit_qty_status,
 
     -- Item information
-    nullif(trim(vmit_tag_desc), '') as vmit_tag_desc,
     nullif(trim(vmit_order_cust), '') as vmit_order_cust,
     nullif(trim(vmit_bin_loc), '') as vmit_bin_loc,
     nullif(trim(vmit_processor_tag_nbr), '') as vmit_processor_tag_nbr,
@@ -38,10 +40,16 @@ select
     cast(vmit_elongation as decimal(10, 3)) as vmit_elongation,
     nullif(trim(vmit_defect), '') as vmit_defect
 from vmi_tags
-where vmit_item_no not in (0,1);
+where vmit_item_no not in (0,1)
+and vmit_qty_status not in (9)
+and STRIP_DIGITS(TRIM(vmit_item_no)) not in ('X', 'TOLL', 'TUBE', 'PLATE', 
+                                             'DECK', 'BEAM', 'FLPLATE', 'EQUIP', 
+                                             'CHAN', 'REJECT', 'SLIT', 'FP', 'SHEET', 
+                                             'PIPE', 'M', 'T', 'ANG', 'BAR', 'DROP');
 
 
-select * from vmitags_clean;
+select distinct vmit_item_class_name, count(*) from vmitags_clean
+group by vmit_item_class_name order by count(*) desc;
 
 
 -- select max(vmit_po_date) as max_po_date FROM vmitags_clean;
@@ -49,4 +57,4 @@ select * from vmitags_clean;
 
 
 
-select distinct vmit_qty_status from vmitags_clean;
+select * from vmitags_clean;
