@@ -75,7 +75,7 @@ python manage.py createsuperuser
 
 ```bash
 conda deactivate
-cd Project/web-demo
+cd Project/web-django
 source .venv/bin/activate
 python manage.py migrate
 python manage.py runserver
