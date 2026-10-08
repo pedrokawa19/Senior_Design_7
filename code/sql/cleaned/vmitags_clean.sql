@@ -60,7 +60,12 @@ where
 -- Description Filter
     and SUBSTRING_INDEX(TRIM(vmit_tag_desc), ' ', 1) not in ('BOND', '20', '24', '5', '4', 
                                                             'PTDGALV', 'PTDGVLM', 'PTD', 'PTDGLVM', 'PTDCR',
-                                                            'ALMZ', 'MISCELLANEOUS', 'GVLM', 'EG', 'GALVEMB');
+                                                            'ALMZ', 'ALZM', 'MISCELLANEOUS', 'GVLM', 'EG', 'GALVEMB', '',
+                                                            '.030', '20GA', 'AZ50', '48"', '7GA', '9GALV', 'ADJUSTMENT',
+                                                            'CLEAT','G40', 'EmbGALV', '18GA', 'SCRAP', '24GA',
+                                                            '____________________________', 'GF', 'PAINTED', '2', 'GV',
+                                                            'PL', '36"', 'POTLDRY', 'CRFH', 'HRPD', 'HRPDry', 'POTP',
+                                                            'PTDHR', 'FLPL', 'HRP_DRY');
 
 
 select distinct vmit_item_class_name, count(*) from vmitags_clean
