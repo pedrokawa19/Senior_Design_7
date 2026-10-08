@@ -212,3 +212,11 @@ select * from vmitags_clean where vmitf_key in (select concat('00', poln_vmi_tag
 select * from order_history_lines_clean;
 
 
+
+
+SELECT t1.column1, t1.column2, t2.some_value
+FROM table1 AS t1
+INNER JOIN table2 AS t2
+  ON t1.id = t2.id 
+  AND t1.sub_id = t2.sub_id;;
+
