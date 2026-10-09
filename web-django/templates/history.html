@@ -2,6 +2,18 @@
 {% block title %}{{ page_title }}{% endblock %}
 {% block content %}
   <style>
+    .history-accounting {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+    .history-accounting-amount {
+      flex: 1;
+      text-align: right;
+    }
+
     .history-sort {
       display: inline-flex;
       align-items: center;
@@ -178,8 +190,19 @@
           const nextAction = !active ? "Sort ascending" : sortDirection === "asc" ? "Sort descending" : "Restore original order";
           return `<th scope="col" aria-sort="${order}"><button type="button" class="history-sort" data-sort-column="${index}" title="${nextAction}" aria-label="${escapeHtml(label)}: ${nextAction}">${escapeHtml(label)} <span aria-hidden="true">${icon}</span></button></th>`;
         }).join("");
+        const formatCell = (cell, column) => {
+          if ([
+            "poln_item_price", "poln_total_cost",
+            "ordl_item_rev", "ordl_item_cost", "ordl_total_rev",
+            "ordl_total_cost", "ordl_total_profit",
+          ].includes(column.toLowerCase()) &&
+              cell !== null && cell !== "" && Number.isFinite(Number(cell))) {
+            return `<span class="history-accounting"><span>$</span><span class="history-accounting-amount">${Number(cell).toFixed(2)}</span></span>`;
+          }
+          return escapeHtml(cell);
+        };
         const rows = data.rows.map(row =>
-          `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("");
+          `<tr>${row.map((cell, index) => `<td>${formatCell(cell, data.columns[index])}</td>`).join("")}</tr>`).join("");
         historyContent.innerHTML = rows
           ? `<div class="table-scroll"><table class="data-table"><thead><tr>${headings}</tr></thead><tbody>${rows}</tbody></table></div>`
           : `<p class="info">${data.column_labels ? "No current inventory records." : "No history matches these filters."}</p>`;

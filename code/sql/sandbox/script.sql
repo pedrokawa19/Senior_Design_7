@@ -220,3 +220,4 @@ INNER JOIN table2 AS t2
   ON t1.id = t2.id 
   AND t1.sub_id = t2.sub_id;;
 
+drop view past_sales;

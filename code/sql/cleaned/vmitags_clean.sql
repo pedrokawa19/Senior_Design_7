@@ -45,6 +45,12 @@ from vmi_tags
 where 
     vmit_item_no not in (0,1)
 
+-- Quantity Filter
+    and vmit_qty > 0
+
+-- Date Filter
+    and vmit_po_date >= '2014-01-01'
+
 -- Status Filter
     and vmit_qty_status not in (9)
 

@@ -35,7 +35,8 @@ function setup(inventory = false) {
       return { ok: !state.fail, json: async () => state.fail ? { detail: 'Synthetic failure' } : {
         page, page_count: Math.max(1, Math.ceil(state.total / pageSize)), page_size: pageSize,
         total_rows: state.total, row_count: count, max_rows: 1000,
-        columns: ['ID'], rows: Array.from({ length: count }, (_, i) => [i === 0 ? '<script>unsafe</script>' : i]),
+        columns: state.columns || ['ID'],
+        rows: state.rows || Array.from({ length: count }, (_, i) => [i === 0 ? '<script>unsafe</script>' : i]),
         column_labels: inventory ? ['Tag key'] : undefined,
         refreshed_at: new Date().toISOString(),
         expires_at: inventory ? null : new Date(Date.now() + 3600000).toISOString(),
@@ -66,6 +67,36 @@ test('loading, paging, escaping, timestamp and automatic refresh', async () => {
   assert.ok(timers.at(-1).delay > 3599000 && timers.at(-1).delay < 3601000);
   await timers.at(-1).fn();
   assert.match(requests.at(-1).url, /page=2/);
+});
+
+const accountingCell = amount =>
+  `<td><span class="history-accounting"><span>$</span><span class="history-accounting-amount">${amount}</span></span></td>`;
+
+test('purchase financial cells separate dollar signs and two-decimal amounts', async () => {
+  const { node, state } = setup();
+  await settle();
+  state.columns = ['poln_item_price', 'POLN_TOTAL_COST', 'poln_order_qty', 'vmit_cost'];
+  state.rows = [[12.3, 456.789, 100, 7.5], [0, -10.5, null, null], [null, '', 2, 3]];
+  await node('#refresh-history').onclick();
+  const html = node('#history-content').innerHTML;
+  assert.ok(html.includes(accountingCell('12.30') + accountingCell('456.79') + '<td>100</td><td>7.5</td>'));
+  assert.ok(html.includes(accountingCell('0.00') + accountingCell('-10.50') + '<td></td><td></td>'));
+  assert.match(html, /<td><\/td><td><\/td><td>2<\/td><td>3<\/td>/);
+  assert.equal(state.rows[0][0], 12.3);
+});
+
+test('all sales financial columns use accounting layout without changing quantities or missing values', async () => {
+  const { node, state } = setup();
+  await settle();
+  state.columns = ['ordl_item_rev', 'ORDL_ITEM_COST', 'ordl_total_rev',
+    'ordl_total_cost', 'ordl_total_profit', 'ordl_order_qty'];
+  state.rows = [[1.2, 2.345, 300, 0, -45.6, 100], [null, '', null, '', null, 5]];
+  await node('#refresh-history').onclick();
+  const html = node('#history-content').innerHTML;
+  assert.ok(html.includes(['1.20', '2.35', '300.00', '0.00', '-45.60']
+    .map(accountingCell).join('') + '<td>100</td>'));
+  assert.ok(html.includes('<tr>' + '<td></td>'.repeat(5) + '<td>5</td></tr>'));
+  assert.equal(state.rows[0][1], 2.345);
 });
 
 test('filter apply resets page, manual refresh preserves filters, clear removes them', async () => {
